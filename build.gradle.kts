@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     id("java")
+    id("jacoco")
 }
 
 group = "com.hotelsearch"
@@ -10,6 +11,62 @@ version = "0.0.1"
 java {
     sourceCompatibility = JavaVersion.VERSION_25
     targetCompatibility = JavaVersion.VERSION_25
+}
+
+jacoco {
+    toolVersion = "0.8.14"
+    reportsDirectory = layout.buildDirectory.dir("reports/jacoco")
+}
+
+// Exclusiones para Java Configurations
+val coverageExcludes =
+    listOf(
+        "**/config/**",
+        "**/*Configuration.class",
+        "**/HotelSearchApplication.class",
+        "**/infrastructure/output/kafka/**",
+    )
+
+val filteredClasses = {
+    layout.files(
+        sourceSets.main.get().output.classesDirs.files.map { dir ->
+            fileTree(dir) {
+                exclude(*coverageExcludes.toTypedArray())
+            }
+        },
+    )
+}
+
+tasks.withType<JacocoReport> {
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        csv.required.set(false)
+    }
+    classDirectories.setFrom(filteredClasses())
+}
+
+tasks.withType<JacocoCoverageVerification> {
+    classDirectories.setFrom(filteredClasses())
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                minimum = BigDecimal("0.80")
+            }
+        }
+        rule {
+            limit {
+                counter = "BRANCH"
+                minimum = BigDecimal("0.80")
+            }
+        }
+    }
+}
+
+// Only run coverage verification on main test task (not integrationTest)
+tasks.named<Test>("test") {
+    finalizedBy(tasks.jacocoTestCoverageVerification)
 }
 
 repositories {
@@ -72,8 +129,8 @@ dependencies {
     // CVE-2026-110879: alinear Jackson con BOM 3.2.4 (estricto)
     testImplementation(enforcedPlatform("tools.jackson:jackson-bom:3.2.4"))
     testImplementation("tools.jackson.core:jackson-databind:3.2.4")
-    testImplementation("tools.jackson.core:jackson-core:3.2.4")
-    testImplementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
+    implementation("tools.jackson.core:jackson-core:3.2.4")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
 
     "intTestImplementation"(libs.spring.boot.starter.test)
     "intTestImplementation"(libs.spring.boot.testcontainers)

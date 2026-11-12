@@ -117,6 +117,48 @@ class CountHotelSearchTest {
             () -> useCase.execute(new CountHotelSearch.Query("no-es-un-uuid")));
     }
 
+    /**
+     * Verifica que el caso de uso rechaza un searchId con longitud incorrecta.
+     *
+     * Condiciones:
+     * - El query contiene un UUID muy corto (35 caracteres) o muy largo (37 caracteres)
+     *
+     * Se espera:
+     * - Se lance IllegalArgumentException en cada caso
+     */
+    @Test
+    void count_InvalidSearchId_WrongLength_ThrowsIllegalArgumentException() {
+        // given
+        CountHotelSearch useCase = new CountHotelSearch(mock(HotelSearchRepository.class));
+
+        // when / then
+        assertThrows(IllegalArgumentException.class,
+            () -> useCase.execute(new CountHotelSearch.Query("550e8400-e29b-41d4-a716-44665544000")));
+        assertThrows(IllegalArgumentException.class,
+            () -> useCase.execute(new CountHotelSearch.Query("550e8400-e29b-41d4-a716-4466554400000")));
+    }
+
+    /**
+     * Verifica que el caso de uso rechaza un query con espacios en blanco.
+     *
+     * Condiciones:
+     * - El query contiene un string con espacios al inicio o al final
+     *
+     * Se espera:
+     * - Se lance IllegalArgumentException en cada caso
+     */
+    @Test
+    void count_InvalidQuery_Whitespace_ThrowsIllegalArgumentException() {
+        // given
+        CountHotelSearch useCase = new CountHotelSearch(mock(HotelSearchRepository.class));
+
+        // when / then
+        assertThrows(IllegalArgumentException.class,
+            () -> useCase.execute(new CountHotelSearch.Query(" 550e8400-e29b-41d4-a716-446655440000")));
+        assertThrows(IllegalArgumentException.class,
+            () -> useCase.execute(new CountHotelSearch.Query("550e8400-e29b-41d4-a716-446655440000 ")));
+    }
+
     // <editor-fold desc="Helpers">
     private HotelSearch validSearch(SearchId searchId) {
         return new HotelSearch(

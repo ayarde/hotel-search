@@ -9,7 +9,9 @@ import java.util.Objects;
 public record CheckOut(LocalDate value) {
 
     public CheckOut {
-        Objects.requireNonNull(value, "checkOut no puede ser nulo");
+        if (value == null) {
+            throw new IllegalArgumentException("checkOut no puede ser nulo");
+        }
     }
 
     public static CheckOut of(LocalDate value) {

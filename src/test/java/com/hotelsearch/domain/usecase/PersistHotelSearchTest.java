@@ -1,6 +1,7 @@
 package com.hotelsearch.domain.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -99,5 +100,38 @@ class PersistHotelSearchTest {
         assertThatThrownBy(() -> new PersistHotelSearch(null))
             .as("Un repository nulo debe lanzar NullPointerException")
             .isInstanceOf(NullPointerException.class);
+    }
+
+    /**
+     * Verifica que persist ignora el duplicate key (PK) al guardar el mismo searchId dos veces.
+     *
+     * Condiciones:
+     * - Se llama a save dos veces con el mismo searchId válido
+     *
+     * Se espera:
+     * - La primera llamada guarde correctamente
+     * - La segunda llamada no lance excepción (defensa de PK)
+     */
+    @Test
+    @DisplayName("persist_DuplicateSearchIdTwice_NoExceptionThrown")
+    void persist_DuplicateSearchIdTwice_NoExceptionThrown() {
+        // given
+        SearchId searchId = SearchId.generate();
+        HotelSearch search = new HotelSearch(
+            searchId,
+            HotelId.of("550e8400-e29b-41d4-a716-446655440000"),
+            CheckIn.of(java.time.LocalDate.of(2026, 11, 10)),
+            CheckOut.of(java.time.LocalDate.of(2026, 11, 29)),
+            Ages.of(List.of(29)));
+
+        // when / then
+        PersistHotelSearch useCase = new PersistHotelSearch(new FakeRepository());
+        assertThatCode(() -> useCase.execute(search))
+            .as("Primera ejecución debe guardar sin excepción")
+            .doesNotThrowAnyException();
+
+        assertThatCode(() -> useCase.execute(search))
+            .as("Segunda ejecución con mismo searchId no debe lanzar excepción")
+            .doesNotThrowAnyException();
     }
 }

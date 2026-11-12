@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import com.hotelsearch.domain.model.HotelSearchEvent;
@@ -242,6 +243,91 @@ class SubmitHotelSearchTest {
             .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> useCase.execute(before))
             .as("checkOut anterior a checkIn debe ser rechazado")
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * Verifica que submit rechaza un command con lista de edades nula.
+     *
+     * Condiciones:
+     * - El command tiene lista de edades null
+     *
+     * Se espera:
+     * - Se lance IllegalArgumentException
+     */
+    @Test
+    @DisplayName("submit_ValidRequest_WithNullAges_ThrowsIllegalArgumentException")
+    void submit_ValidRequest_WithNullAges_ThrowsIllegalArgumentException() {
+        // given
+        RecordingPublisher publisher = new RecordingPublisher();
+        SubmitHotelSearch useCase = new SubmitHotelSearch(publisher, FIXED_CLOCK);
+
+        SubmitHotelSearch.Command command = new SubmitHotelSearch.Command(
+            "550e8400-e29b-41d4-a716-446655440000",
+            LocalDate.of(2026, 11, 10),
+            LocalDate.of(2026, 11, 29),
+            null);
+
+        // when / then
+        assertThatThrownBy(() -> useCase.execute(command))
+            .as("Lista de edades nula debe ser rechazada")
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * Verifica que submit rechaza un command con lista de edades vacía.
+     *
+     * Condiciones:
+     * - El command tiene lista de edades vacía
+     *
+     * Se espera:
+     * - Se lance IllegalArgumentException
+     */
+    @Test
+    @DisplayName("submit_ValidRequest_WithEmptyAges_ThrowsIllegalArgumentException")
+    void submit_ValidRequest_WithEmptyAges_ThrowsIllegalArgumentException() {
+        // given
+        RecordingPublisher publisher = new RecordingPublisher();
+        SubmitHotelSearch useCase = new SubmitHotelSearch(publisher, FIXED_CLOCK);
+
+        SubmitHotelSearch.Command command = new SubmitHotelSearch.Command(
+            "550e8400-e29b-41d4-a716-446655440000",
+            LocalDate.of(2026, 11, 10),
+            LocalDate.of(2026, 11, 29),
+            List.of());
+
+        // when / then
+        assertThatThrownBy(() -> useCase.execute(command))
+            .as("Lista de edades vacía debe ser rechazada")
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * Verifica que submit rechaza un command con más de 50 edades.
+     *
+     * Condiciones:
+     * - El command tiene lista de edades con más de 50 elementos
+     *
+     * Se espera:
+     * - Se lance IllegalArgumentException
+     */
+    @Test
+    @DisplayName("submit_ValidRequest_WithMoreThan50Ages_ThrowsIllegalArgumentException")
+    void submit_ValidRequest_WithMoreThan50Ages_ThrowsIllegalArgumentException() {
+        // given
+        RecordingPublisher publisher = new RecordingPublisher();
+        SubmitHotelSearch useCase = new SubmitHotelSearch(publisher, FIXED_CLOCK);
+
+        List<Integer> muchasEdades = IntStream.range(0, 51).boxed().toList();
+        SubmitHotelSearch.Command command = new SubmitHotelSearch.Command(
+            "550e8400-e29b-41d4-a716-446655440000",
+            LocalDate.of(2026, 11, 10),
+            LocalDate.of(2026, 11, 29),
+            muchasEdades);
+
+        // when / then
+        assertThatThrownBy(() -> useCase.execute(command))
+            .as("Más de 50 edades debe ser rechazado")
             .isInstanceOf(IllegalArgumentException.class);
     }
 
