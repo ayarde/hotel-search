@@ -1,7 +1,7 @@
-package com.hotelsearch.config;
+package com.hotelsearch.infrastructure.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,18 +12,16 @@ import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonSerializer;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Configuración del producer Kafka para eventos de búsqueda de hotel.
  *
  * <p>Crea un {@link ProducerFactory} que usa la configuración estándar
  * de Spring Boot ({@code spring.kafka.producer.*}) leída vía {@link Environment}
- * pero sobrescribe el serializador de valores para usar {@link JsonSerializer}
- * con {@link JavaTimeModule} (soporte para {@code java.time.LocalDate}).</p>
+ * pero sobrescribe el serializador de valores para usar
+ * {@link JacksonJsonSerializer} con Jackson 3.</p>
  *
  * <p>Los topics {@code hotel_availability_searches} y {@code hotel_search_dlt}
  * se crean con una partición y replication factor 1.</p>
@@ -44,7 +42,7 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public ProducerFactory<String, Object> producerFactory() {
+    public ProducerFactory<String, Object> producerFactory(JsonMapper jsonMapper) {
         var props = new HashMap<String, Object>();
 
         // Leer propiedades de spring.kafka.producer.* del environment
@@ -63,11 +61,8 @@ public class KafkaProducerConfig {
 
         var factory = new DefaultKafkaProducerFactory<String, Object>(props);
 
-        // JsonSerializer con ObjectMapper que incluye JavaTimeModule para LocalDate
-        var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-
-        var jsonSerializer = new org.springframework.kafka.support.serializer.JsonSerializer<>(objectMapper);
+        var jsonSerializer = new JacksonJsonSerializer<Object>(jsonMapper);
+        jsonSerializer.setAddTypeInfo(false);
         factory.setValueSerializer(jsonSerializer);
 
         return factory;

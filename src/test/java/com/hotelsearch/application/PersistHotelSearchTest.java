@@ -1,4 +1,4 @@
-package com.hotelsearch.domain.usecase;
+package com.hotelsearch.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -16,7 +16,7 @@ import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
 import com.hotelsearch.domain.valueobject.HotelId;
 import com.hotelsearch.domain.valueobject.SearchId;
-import com.hotelsearch.domain.port.HotelSearchRepository;
+import com.hotelsearch.application.port.HotelSearchRepository;
 
 class PersistHotelSearchTest {
 

@@ -1,5 +1,7 @@
-package com.hotelsearch.config;
+package com.hotelsearch.infrastructure.config;
 
+import com.hotelsearch.application.PersistHotelSearch;
+import com.hotelsearch.application.port.HotelSearchRepository;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,5 +23,15 @@ public class AppConfig {
     @Bean
     public Clock clock() {
         return Clock.systemUTC();
+    }
+
+    /**
+     * Servicio de aplicación que persiste una búsqueda en Oracle. La
+     * anotación transaccional se aplica sobre el bean de Spring para que
+     * el commit de la base termine antes de que el listener retorne.
+     */
+    @Bean
+    public PersistHotelSearch persistHotelSearch(HotelSearchRepository repository) {
+        return new PersistHotelSearch(repository);
     }
 }

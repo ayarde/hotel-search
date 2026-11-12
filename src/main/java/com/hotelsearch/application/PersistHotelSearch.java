@@ -1,14 +1,15 @@
-package com.hotelsearch.domain.usecase;
+package com.hotelsearch.application;
 
-import java.util.Objects;
+import com.hotelsearch.application.port.HotelSearchRepository;
 import com.hotelsearch.domain.model.HotelSearch;
-import com.hotelsearch.domain.port.HotelSearchRepository;
+import java.util.Objects;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Caso de uso: persistir una búsqueda de hotel.
  * Utilizado por el consumidor de Kafka para guardar el evento en Oracle.
  */
-public final class PersistHotelSearch {
+public class PersistHotelSearch {
 
     private final HotelSearchRepository repository;
 
@@ -16,6 +17,7 @@ public final class PersistHotelSearch {
         this.repository = Objects.requireNonNull(repository, "repository no puede ser nulo");
     }
 
+    @Transactional
     public void execute(HotelSearch search) {
         Objects.requireNonNull(search, "search no puede ser nulo");
         repository.save(search);

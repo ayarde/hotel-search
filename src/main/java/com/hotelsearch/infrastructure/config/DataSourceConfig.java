@@ -1,4 +1,4 @@
-package com.hotelsearch.config;
+package com.hotelsearch.infrastructure.config;
 
 import javax.sql.DataSource;
 import org.springframework.context.annotation.Bean;

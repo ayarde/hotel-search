@@ -9,9 +9,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * <p>Arranque local:</p>
  * <pre>{@code ./gradlew bootRun}</pre>
  *
- * <p>Nota: en Fase 0 no se configura ningún DataSource (la persistencia
- * Oracle se agrega en la Fase 2), por lo que el arranque levanta solo
- * la capa web de Spring Boot.</p>
+ * <p>La aplicación inicializa la conexión con Oracle, el producer y el
+ * consumer Kafka, y aplica las migraciones de Flyway al arrancar.</p>
  */
 @SpringBootApplication
 public class HotelSearchApplication {

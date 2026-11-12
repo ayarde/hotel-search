@@ -29,26 +29,10 @@ public record Ages(List<Integer> values) {
                 throw new IllegalArgumentException("cada edad debe ser >= 0, valor: " + age);
             }
         }
+        values = List.copyOf(values);
     }
 
     public static Ages of(List<Integer> values) {
-        if (values == null) {
-            throw new IllegalArgumentException("ages no puede ser nulo");
-        }
-        if (values.isEmpty()) {
-            throw new IllegalArgumentException("ages no puede ser vacío");
-        }
-        if (values.size() > MAX_SIZE) {
-            throw new IllegalArgumentException("ages no puede tener más de " + MAX_SIZE + " elementos");
-        }
-        for (Integer age : values) {
-            if (age == null) {
-                throw new IllegalArgumentException("ages no puede contener elementos nulos");
-            }
-            if (age < 0) {
-                throw new IllegalArgumentException("cada edad debe ser >= 0, valor: " + age);
-            }
-        }
-        return new Ages(List.copyOf(values));
+        return new Ages(values);
     }
 }

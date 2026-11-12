@@ -1,7 +1,7 @@
 package com.hotelsearch.infrastructure.output.kafka;
 
+import com.hotelsearch.application.port.HotelSearchPublisher;
 import com.hotelsearch.domain.model.HotelSearchEvent;
-import com.hotelsearch.domain.port.HotelSearchPublisher;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.TimeoutException;

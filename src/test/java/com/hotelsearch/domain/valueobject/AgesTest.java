@@ -2,6 +2,7 @@ package com.hotelsearch.domain.valueobject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -157,9 +158,15 @@ class AgesTest {
     @DisplayName("la lista devuelta es inmutable (defensive copy)")
     void values_IsImmutable() {
         // given
-        Ages ages = Ages.of(Arrays.asList(29, 28, 4, 3));
+        List<Integer> source = new ArrayList<>(List.of(29, 28, 4, 3));
+        Ages ages = Ages.of(source);
 
-        // when / then
+        // when
+        source.set(0, 50);
+
+        // then
+        assertThat(ages.values()).as("La lista original no debe modificar el value object")
+            .containsExactly(29, 28, 4, 3);
         assertThatThrownBy(() -> ages.values().add(5))
             .as("La lista de edades debe ser inmutable")
             .isInstanceOf(java.lang.UnsupportedOperationException.class);

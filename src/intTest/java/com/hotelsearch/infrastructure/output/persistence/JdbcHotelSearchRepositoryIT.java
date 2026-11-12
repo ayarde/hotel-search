@@ -45,7 +45,7 @@ import com.hotelsearch.domain.valueobject.SearchId;
  *   compartido por toda la clase.
  */
 @Testcontainers
-@SpringBootTest
+@SpringBootTest(properties = "spring.kafka.listener.auto-startup=false")
 class JdbcHotelSearchRepositoryIT {
 
     @Container

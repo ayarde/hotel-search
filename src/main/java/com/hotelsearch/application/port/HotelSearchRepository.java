@@ -1,4 +1,4 @@
-package com.hotelsearch.domain.port;
+package com.hotelsearch.application.port;
 
 import java.util.Optional;
 import com.hotelsearch.domain.model.HotelSearch;

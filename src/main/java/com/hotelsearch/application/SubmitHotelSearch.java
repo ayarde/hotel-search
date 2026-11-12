@@ -1,4 +1,4 @@
-package com.hotelsearch.domain.usecase;
+package com.hotelsearch.application;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -11,7 +11,7 @@ import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
 import com.hotelsearch.domain.valueobject.HotelId;
 import com.hotelsearch.domain.valueobject.SearchId;
-import com.hotelsearch.domain.port.HotelSearchPublisher;
+import com.hotelsearch.application.port.HotelSearchPublisher;
 
 /**
  * Caso de uso: registrar una búsqueda de hotel.

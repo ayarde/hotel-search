@@ -16,10 +16,15 @@ spring:
     locations: classpath:db/migration
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:hotel-search-consumer}
+      auto-offset-reset: earliest
+    listener:
+      ack-mode: record
     producer:
       # Esperar ACK de todas las réplicas (1 broker = 1 réplica).
       acks: all
-      # Idempotencia nativa del producer (exactly-once en el broker).
+      # Idempotencia nativa del producer ante reintentos del broker.
       enable-idempotence: true
       # Timeouts según TECHNICAL-DECISIONS.md.
       delivery-timeout-ms: 10000

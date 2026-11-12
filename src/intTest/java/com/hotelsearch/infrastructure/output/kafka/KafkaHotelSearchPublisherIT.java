@@ -3,7 +3,7 @@ package com.hotelsearch.infrastructure.output.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
@@ -28,7 +28,7 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.oracle.OracleContainer;
 
 import com.hotelsearch.domain.model.HotelSearchEvent;
-import com.hotelsearch.domain.port.HotelSearchPublisher;
+import com.hotelsearch.application.port.HotelSearchPublisher;
 import com.hotelsearch.domain.valueobject.Ages;
 import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
@@ -50,7 +50,7 @@ import com.hotelsearch.domain.valueobject.SearchId;
  *   (creado por KafkaProducerConfig al arrancar el contexto).
  */
 @Testcontainers
-@SpringBootTest
+@SpringBootTest(properties = "spring.kafka.listener.auto-startup=false")
 class KafkaHotelSearchPublisherIT {
 
     @Container
@@ -162,13 +162,12 @@ class KafkaHotelSearchPublisherIT {
             for (var record : records.records("hotel_availability_searches")) {
                 var bytes = (byte[]) record.value();
                 try {
-                    var mapper = new ObjectMapper();
-                    mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+                    var mapper = JsonMapper.builder().findAndAddModules().build();
                     var event = mapper.readValue(bytes, HotelSearchEvent.class);
                     if (event.searchId().equals(expectedSearchId)) {
                         return event;
                     }
-                } catch (java.io.IOException e) {
+                } catch (tools.jackson.core.JacksonException e) {
                     throw new IllegalStateException("Error deserializando evento", e);
                 }
             }

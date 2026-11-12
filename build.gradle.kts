@@ -120,37 +120,31 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
     // CVE-2026-119078: commons-codec 1.23.0
     implementation("commons-codec:commons-codec:1.23.0")
-    // Jackson JavaTimeModule para serializar LocalDate en eventos Kafka
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
-
     testImplementation(libs.spring.boot.starter.test)
     // CVE-2026-113602: json-smart ≤2.6.0 vulnerable; forzar versión segura
     testImplementation("net.minidev:json-smart:2.6.1")
     // CVE-2026-110879: alinear Jackson con BOM 3.2.4 (estricto)
     testImplementation(enforcedPlatform("tools.jackson:jackson-bom:3.2.4"))
     testImplementation("tools.jackson.core:jackson-databind:3.2.4")
-    implementation("tools.jackson.core:jackson-core:3.2.4")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
 
     "intTestImplementation"(libs.spring.boot.starter.test)
     "intTestImplementation"(libs.spring.boot.testcontainers)
     "intTestImplementation"(libs.testcontainers.oracle.free)
     "intTestImplementation"(libs.testcontainers.junit.jupiter)
     "intTestImplementation"(libs.testcontainers.kafka)
-    // Jackson para deserializar mensajes en integration tests
-    "intTestImplementation"("com.fasterxml.jackson.core:jackson-databind")
 }
 
-val integrationTest by tasks.registering(Test::class) {
-    description = "Ejecuta los integration tests con dependencias reales (Testcontainers)."
-    group = "verification"
-    testClassesDirs = intTest.output.classesDirs
-    classpath = intTest.runtimeClasspath
-    useJUnitPlatform()
-    shouldRunAfter(tasks.named("test"))
-    // Los integration tests no corren por defecto; se activan con -PintegrationTest=true.
-    onlyIf { providers.gradleProperty("integrationTest").getOrElse("false") == "true" }
-}
+val integrationTest =
+    tasks.register<Test>("integrationTest") {
+        description = "Ejecuta los integration tests con dependencias reales (Testcontainers)."
+        group = "verification"
+        testClassesDirs = intTest.output.classesDirs
+        classpath = intTest.runtimeClasspath
+        useJUnitPlatform()
+        shouldRunAfter(tasks.named("test"))
+        // Los integration tests no corren por defecto; se activan con -PintegrationTest=true.
+        onlyIf { providers.gradleProperty("integrationTest").getOrElse("false") == "true" }
+    }
 
 tasks.named("check") {
     dependsOn(integrationTest)

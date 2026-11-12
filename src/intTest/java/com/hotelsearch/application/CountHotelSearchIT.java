@@ -1,4 +1,4 @@
-package com.hotelsearch.domain.usecase;
+package com.hotelsearch.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -18,7 +18,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.oracle.OracleContainer;
 
 import com.hotelsearch.domain.model.HotelSearch;
-import com.hotelsearch.domain.port.HotelSearchRepository;
+import com.hotelsearch.application.port.HotelSearchRepository;
 import com.hotelsearch.domain.valueobject.Ages;
 import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
@@ -42,7 +42,7 @@ import com.hotelsearch.domain.valueobject.SearchId;
  *   compartido por toda la clase.
  */
 @Testcontainers
-@SpringBootTest
+@SpringBootTest(properties = "spring.kafka.listener.auto-startup=false")
 class CountHotelSearchIT {
 
     @Container

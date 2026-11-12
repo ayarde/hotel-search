@@ -1,4 +1,4 @@
-package com.hotelsearch.domain.usecase;
+package com.hotelsearch.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -11,7 +11,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import com.hotelsearch.domain.model.HotelSearchEvent;
-import com.hotelsearch.domain.port.HotelSearchPublisher;
+import com.hotelsearch.application.port.HotelSearchPublisher;
 
 class SubmitHotelSearchTest {
 

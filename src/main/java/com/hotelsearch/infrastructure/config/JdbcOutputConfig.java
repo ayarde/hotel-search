@@ -1,6 +1,6 @@
-package com.hotelsearch.config;
+package com.hotelsearch.infrastructure.config;
 
-import com.hotelsearch.domain.port.HotelSearchRepository;
+import com.hotelsearch.application.port.HotelSearchRepository;
 import com.hotelsearch.infrastructure.output.persistence.JdbcHotelSearchRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

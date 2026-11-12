@@ -1,10 +1,10 @@
-package com.hotelsearch.domain.usecase;
+package com.hotelsearch.application;
 
 import java.util.Objects;
 import com.hotelsearch.domain.model.HotelSearch;
 import com.hotelsearch.domain.model.HotelSearchWithCount;
 import com.hotelsearch.domain.valueobject.SearchId;
-import com.hotelsearch.domain.port.HotelSearchRepository;
+import com.hotelsearch.application.port.HotelSearchRepository;
 
 /**
  * Caso de uso: consultar una búsqueda y contar búsquedas equivalentes.

@@ -1,8 +1,7 @@
-package com.hotelsearch.config;
+package com.hotelsearch.infrastructure.config;
 
 import com.hotelsearch.infrastructure.output.kafka.KafkaHotelSearchPublisher;
-import com.hotelsearch.domain.port.HotelSearchPublisher;
-import org.apache.kafka.clients.producer.ProducerConfig;
+import com.hotelsearch.application.port.HotelSearchPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
