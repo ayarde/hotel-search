@@ -3,11 +3,11 @@
 Estado del proyecto por fases, con el alcance ya implementado, su
 validación y lo que queda pendiente.
 
-Última actualización: 2026-11-12 · Rama `main` · Fase 5 implementada
+Última actualización: 2026-11-12 · Rama `main` · Fases 0–6 y 8 implementadas
 
 ## Estado general
 
-Fases 0, 1, 2, 3, 4, 5 y 8 implementadas y validadas. Las fases 6, 7 y 9
+Fases 0, 1, 2, 3, 4, 5, 6 y 8 implementadas y validadas. Las fases 7 y 9
 siguen pendientes.
 
 El flujo completo que ya funciona es: POST REST → publicación de un evento
@@ -103,6 +103,29 @@ la búsqueda y su cantidad de equivalentes.
   desconocidos, fechas y UUID inválidos, y el efecto del orden de `ages`
   sobre la equivalencia.
 
+### Fase 6 — Virtual Threads, logging y configuración operativa
+
+- Implementada en el working tree actual, pendiente de commit.
+- Virtual Threads habilitados con `spring.threads.virtual.enabled` y HikariCP
+  configurado con un máximo inicial de 10 conexiones.
+- Bootstrap servers, JDBC, credenciales, timeouts del producer, timeout de
+  cierre de Kafka y timeout de shutdown externalizados mediante variables de
+  entorno.
+- Logging estructurado JSON con el formato nativo `logstash` de Spring Boot
+  4.1. El MDC incorpora `requestId`, `searchId`, `traceId`, `spanId` y
+  `component`, y se restaura al finalizar cada operación, también ante
+  errores.
+- El producer propaga `searchId` y el contexto de tracing en headers Kafka;
+  el consumer recupera esa correlación. Las observations están habilitadas
+  explícitamente en `KafkaTemplate` y en el listener container.
+- Micrometer Tracing usa el bridge OpenTelemetry únicamente para correlación.
+  No se incorpora ningún exportador OTLP, Zipkin o Jaeger.
+- Shutdown web graceful con timeout por fase configurable y cierre acotado del
+  producer Kafka.
+- Context test de configuración, tests unitarios del MDC y tests de
+  integración que verifican el JSON, los headers de correlación y la
+  propagación W3C del tracing.
+
 ### Fase 8 — JaCoCo, suite de tests y build final
 
 - Commit: `ce7a944`
@@ -113,12 +136,6 @@ la búsqueda y su cantidad de equivalentes.
   `HotelSearchApplication` e `infrastructure/output/kafka/`).
 
 ## Fases pendientes
-
-### Fase 6 — Virtual Threads, logging y configuración operativa
-
-- Virtual Threads, HikariCP externalizado (máximo 10 conexiones), logging
-  estructurado JSON con MDC, correlación por `searchId` y observation
-  habilitada en producer y consumer.
 
 ### Fase 7 — Docker, Docker Compose y Flyway end-to-end
 
@@ -133,18 +150,19 @@ la búsqueda y su cantidad de equivalentes.
 
 ## Validaciones actuales
 
-Comandos ejecutados con la implementación de la Fase 5:
+Comandos ejecutados con la implementación de la Fase 6:
 
 ```bash
 ./gradlew clean build
 ./gradlew clean build -PintegrationTest=true
+./gradlew jacocoTestReport
 ```
 
-- Unit tests: 95 pruebas en 18 clases, 0 fallos, 0 errores, 0 omitidas.
-- Integration tests: 19 pruebas en 5 clases, 0 fallos, 0 errores, 0 omitidas.
+- Unit tests: 110 pruebas en 21 clases, 0 fallos, 0 errores, 0 omitidas.
+- Integration tests: 22 pruebas en 5 clases, 0 fallos, 0 errores, 0 omitidas.
   Requieren Docker porque levantan Kafka 4.4.0 y Oracle Free 23.26.3 reales.
-- Cobertura JaCoCo sobre el código de producción: `LINE` 92,4 %, `BRANCH`
-  93,2 %, `INSTRUCTION` 92,1 % y `METHOD` 91,0 % (umbral bloqueante: 80 % en
+- Cobertura JaCoCo sobre el código de producción: `LINE` 93,5 %, `BRANCH`
+  91,3 %, `INSTRUCTION` 93,0 % y `METHOD` 91,8 % (umbral bloqueante: 80 % en
   líneas y branches).
 
 ## Estructura de paquetes actual
@@ -156,13 +174,15 @@ Comandos ejecutados con la implementación de la Fase 5:
 - `com.hotelsearch.application.port`: `HotelSearchPublisher` y
   `HotelSearchRepository`.
 - `com.hotelsearch.infrastructure.input.rest`: controller, DTOs, mapper HTTP,
-  filtro de body y manejo de Problem Details.
+  filtros de body y correlación, y manejo de Problem Details.
 - `com.hotelsearch.infrastructure.input.kafka`: listener, mapper del evento
   y excepción de evento inválido.
 - `com.hotelsearch.infrastructure.output.kafka`: publisher Kafka.
 - `com.hotelsearch.infrastructure.output.persistence`: repositorio JDBC.
 - `com.hotelsearch.infrastructure.config`: configuración de Spring, Kafka,
   JDBC, topics y OpenAPI.
+- `com.hotelsearch.infrastructure.observability`: nombres compartidos de
+  correlación y scopes delimitados para el MDC.
 
 ## Decisiones vigentes
 
@@ -177,6 +197,8 @@ Comandos ejecutados con la implementación de la Fase 5:
   miden en el informe, pero no bloquean el build.
 - Sin idempotencia HTTP, sin Outbox, sin XA y sin consumidor automático del
   DLT.
+- Micrometer Tracing se usa solo para logs y correlación; no hay exportador
+  ni backend de tracing.
 
 ## Notas para la continuación
 
@@ -189,6 +211,6 @@ Comandos ejecutados con la implementación de la Fase 5:
 - El escenario de fallo transitorio simula la caída de Oracle pausando el
   contenedor y evictando conexiones del pool, por lo que requiere acceso al
   socket de Docker.
-- El siguiente incremento corresponde a la Fase 6: Virtual Threads, logging
-  estructurado, correlación y configuración operativa, sin modificar el
-  contrato HTTP ni las garantías Kafka/Oracle.
+- El siguiente incremento corresponde a la Fase 7: Dockerfile, Docker Compose,
+  health checks y ejecución end-to-end con Flyway, sin modificar el contrato
+  HTTP ni las garantías Kafka/Oracle.

@@ -8,12 +8,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.hotelsearch.infrastructure.input.kafka.InvalidHotelSearchEventException;
+import io.micrometer.observation.ObservationRegistry;
 import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DefaultErrorHandler;
@@ -45,12 +47,48 @@ class KafkaConsumerConfigTest {
 
         // when
         var factory = config.kafkaListenerContainerFactory(
-            consumerFactory, mock(DefaultErrorHandler.class));
+            consumerFactory,
+            mock(DefaultErrorHandler.class),
+            ObservationRegistry.create(),
+            kafkaProperties(true));
 
         // then
         assertThat(factory.getContainerProperties().getAckMode())
             .as("El offset debe confirmarse por registro")
             .isEqualTo(ContainerProperties.AckMode.RECORD);
+    }
+
+    /**
+     * Verifica que la fábrica del listener habilite las observations de
+     * Micrometer y use el registro proporcionado.
+     *
+     * Condiciones:
+     * - La propiedad de observations del listener está habilitada
+     *
+     * Se espera:
+     * - El container tenga observations habilitadas
+     * - El container use el ObservationRegistry inyectado
+     */
+    @Test
+    void kafkaListenerContainerFactory_ObservationsEnabled_ConfiguresContainerProperties() {
+        // given
+        var consumerFactory = mock(org.springframework.kafka.core.ConsumerFactory.class);
+        var observationRegistry = ObservationRegistry.create();
+
+        // when
+        var factory = config.kafkaListenerContainerFactory(
+            consumerFactory,
+            mock(DefaultErrorHandler.class),
+            observationRegistry,
+            kafkaProperties(true));
+
+        // then
+        assertThat(factory.getContainerProperties().isObservationEnabled())
+            .as("El listener debe crear observations")
+            .isTrue();
+        assertThat(factory.getContainerProperties().getObservationRegistry())
+            .as("El listener debe usar el registro de la aplicación")
+            .isSameAs(observationRegistry);
     }
 
     /**
@@ -164,6 +202,12 @@ class KafkaConsumerConfigTest {
     }
 
     // <editor-fold desc="Helpers">
+    private KafkaProperties kafkaProperties(boolean observationEnabled) {
+        var properties = new KafkaProperties();
+        properties.getListener().setObservationEnabled(observationEnabled);
+        return properties;
+    }
+
     private ConsumerRecord<String, Object> record() {
         return new ConsumerRecord<>(
             "hotel_availability_searches",

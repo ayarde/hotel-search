@@ -5,6 +5,7 @@ import com.hotelsearch.domain.model.HotelSearchEvent;
 import com.hotelsearch.infrastructure.input.kafka.HotelSearchEventMapper;
 import com.hotelsearch.infrastructure.input.kafka.HotelSearchKafkaListener;
 import com.hotelsearch.infrastructure.input.kafka.InvalidHotelSearchEventException;
+import io.micrometer.observation.ObservationRegistry;
 import java.util.Map;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -67,17 +68,24 @@ public class KafkaConsumerConfig {
      *
      * @param consumerFactory consumer factory tipado
      * @param errorHandler política de reintentos y recuperación
+     * @param observationRegistry registro de observations de Micrometer
+     * @param kafkaProperties propiedades Kafka gestionadas por Spring Boot
      * @return fábrica del listener Kafka
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, HotelSearchEvent> kafkaListenerContainerFactory(
         ConsumerFactory<String, HotelSearchEvent> consumerFactory,
-        DefaultErrorHandler errorHandler
+        DefaultErrorHandler errorHandler,
+        ObservationRegistry observationRegistry,
+        KafkaProperties kafkaProperties
     ) {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, HotelSearchEvent>();
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
         factory.getContainerProperties().setDeliveryAttemptHeader(true);
+        factory.getContainerProperties().setObservationEnabled(
+            kafkaProperties.getListener().isObservationEnabled());
+        factory.getContainerProperties().setObservationRegistry(observationRegistry);
         factory.setCommonErrorHandler(errorHandler);
         return factory;
     }

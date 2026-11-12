@@ -2,6 +2,11 @@ package com.hotelsearch.infrastructure.input.kafka;
 
 import com.hotelsearch.application.PersistHotelSearch;
 import com.hotelsearch.domain.model.HotelSearchEvent;
+import com.hotelsearch.domain.valueobject.SearchId;
+import com.hotelsearch.infrastructure.observability.CorrelationContext;
+import com.hotelsearch.infrastructure.observability.MdcScope;
+import java.nio.charset.StandardCharsets;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 
 /**
@@ -32,16 +37,44 @@ public class HotelSearchKafkaListener {
      *
      * <p>El servicio de persistencia completa su transacción antes de que
      * este método retorne. Spring Kafka confirma el offset únicamente
-     * después de ese retorno.</p>
+     * después de ese retorno. El scope de correlación se cierra incluso
+     * cuando la validación o la persistencia propagan una excepción.</p>
      *
-     * @param evento evento deserializado desde Kafka
+     * @param record registro Kafka con el evento y sus headers de correlación
      */
     @KafkaListener(
         topics = "${app.kafka.topics.hotel-availability-searches}",
         groupId = "${spring.kafka.consumer.group-id}",
         containerFactory = "kafkaListenerContainerFactory"
     )
-    public void consume(HotelSearchEvent evento) {
-        persistHotelSearch.execute(mapper.toHotelSearch(evento));
+    public void consume(ConsumerRecord<String, HotelSearchEvent> record) {
+        HotelSearchEvent event = record.value();
+        String searchId = resolveSearchId(record, event);
+
+        try (MdcScope ignored = MdcScope.search(
+            CorrelationContext.KAFKA_CONSUMER_COMPONENT, searchId)) {
+            persistHotelSearch.execute(mapper.toHotelSearch(event));
+        }
+    }
+
+    private String resolveSearchId(
+        ConsumerRecord<String, HotelSearchEvent> record,
+        HotelSearchEvent event
+    ) {
+        String eventSearchId = event.searchId().toString();
+        var header = record.headers().lastHeader(CorrelationContext.SEARCH_ID);
+        if (header == null || header.value() == null) {
+            return eventSearchId;
+        }
+
+        String candidate = new String(header.value(), StandardCharsets.UTF_8);
+        try {
+            String validSearchId = SearchId.of(candidate).toString();
+            return validSearchId.equals(eventSearchId) ? validSearchId : eventSearchId;
+        } catch (IllegalArgumentException ignored) {
+            // El evento conserva su searchId canónico. Un header inválido no
+            // se utiliza para la correlación ni se propaga al MDC.
+            return eventSearchId;
+        }
     }
 }

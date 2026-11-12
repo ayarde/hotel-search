@@ -3,7 +3,12 @@ package com.hotelsearch.infrastructure.output.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.hotelsearch.infrastructure.observability.CorrelationContext;
+import com.hotelsearch.infrastructure.observability.MdcScope;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import tools.jackson.databind.json.JsonMapper;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
@@ -16,8 +21,13 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -50,8 +60,11 @@ import com.hotelsearch.domain.valueobject.SearchId;
  *   (creado por KafkaProducerConfig al arrancar el contexto).
  */
 @Testcontainers
+@ExtendWith(OutputCaptureExtension.class)
 @SpringBootTest(properties = "spring.kafka.listener.auto-startup=false")
 class KafkaHotelSearchPublisherIT {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaHotelSearchPublisherIT.class);
 
     @Container
     private static final KafkaContainer kafka =
@@ -73,6 +86,9 @@ class KafkaHotelSearchPublisherIT {
 
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Autowired
+    private Tracer tracer;
 
     /**
      * Verifica que un evento válido se publica y recibe ACK del broker.
@@ -126,6 +142,96 @@ class KafkaHotelSearchPublisherIT {
         var record = consumeRecord();
         assertThat(record).as("Debe recibir el record").isNotNull();
         assertThat(record.key()).as("Key debe ser el searchId").isEqualTo(searchId.value().toString());
+    }
+
+    /**
+     * Verifica que el producer propague el contexto de tracing y el
+     * searchId dentro de los headers del mensaje.
+     *
+     * Condiciones:
+     * - Existe un span padre activo durante la publicación
+     * - Kafka recibe el evento publicado
+     *
+     * Se espera:
+     * - El mensaje incluya el header searchId
+     * - El mensaje incluya el contexto W3C de tracing
+     */
+    @Test
+    void publish_WithinTrace_PropagatesSearchIdAndTraceHeaders() throws Exception {
+        // given
+        SearchId searchId = SearchId.generate();
+        HotelSearchEvent event = eventOf(searchId);
+        Span span = tracer.nextSpan().name("phase6-publish").start();
+
+        // when
+        try (Tracer.SpanInScope ignored = tracer.withSpan(span)) {
+            publisher.publish(event);
+        } finally {
+            span.end();
+        }
+
+        // then
+        ConsumerRecord<String, Object> record = consumeRecord(searchId.toString());
+        var searchIdHeader = record.headers().lastHeader(CorrelationContext.SEARCH_ID);
+        assertThat(searchIdHeader).as("El searchId debe viajar en un header")
+            .isNotNull();
+        assertThat(new String(searchIdHeader.value(), StandardCharsets.UTF_8))
+            .isEqualTo(searchId.toString());
+        assertThat(record.headers().lastHeader("traceparent"))
+            .as("El contexto de tracing debe propagarse a Kafka")
+            .isNotNull();
+    }
+
+    /**
+     * Verifica que el logging estructurado incluya los datos de correlación
+     * sin exponer el payload de la búsqueda.
+     *
+     * Condiciones:
+     * - Existe un traceId y un spanId activos
+     * - El MDC contiene component y searchId
+     *
+     * Se espera:
+     * - El log sea un objeto JSON
+     * - Include searchId, traceId, spanId y component
+     * - No incluya la lista de edades
+     */
+    @Test
+    void logging_CorrelationScope_WritesJsonWithCorrelationFields(CapturedOutput output) throws Exception {
+        // given
+        String marker = "phase6-structured-log";
+        String searchId = SearchId.generate().toString();
+        Span span = tracer.nextSpan().name("phase6-logging").start();
+
+        // when
+        try (Tracer.SpanInScope ignored = tracer.withSpan(span)) {
+            try (MdcScope scope = MdcScope.search(
+                CorrelationContext.KAFKA_PRODUCER_COMPONENT, searchId)) {
+                log.info(marker);
+            }
+        } finally {
+            span.end();
+        }
+
+        // then
+        String jsonLine = output.getAll().lines()
+            .filter(line -> line.contains(marker))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No se capturó el log estructurado esperado"));
+        var mapper = JsonMapper.builder().findAndAddModules().build();
+        var json = mapper.readValue(jsonLine, tools.jackson.databind.JsonNode.class);
+        assertThat(json.get("timestamp").asString()).isNotBlank();
+        assertThat(json.get("level").asString()).isEqualTo("INFO");
+        assertThat(json.get("logger").asString())
+            .isEqualTo(KafkaHotelSearchPublisherIT.class.getName());
+        assertThat(json.get("searchId").asString()).isEqualTo(searchId);
+        assertThat(json.get("component").asString())
+            .isEqualTo(CorrelationContext.KAFKA_PRODUCER_COMPONENT);
+        assertThat(json.get("traceId").asString()).isNotBlank();
+        assertThat(json.get("spanId").asString()).isNotBlank();
+        assertThat(json.has("ages"))
+            .as("El log no debe contener el payload de la búsqueda")
+            .isFalse();
+        assertThat(org.slf4j.MDC.getCopyOfContextMap()).isNullOrEmpty();
     }
 
     /**
@@ -183,6 +289,20 @@ class KafkaHotelSearchPublisherIT {
                 return record;
             }
             throw new IllegalStateException("No se recibió mensaje en el topic");
+        }
+    }
+
+    private ConsumerRecord<String, Object> consumeRecord(String expectedSearchId) {
+        try (var consumer = createConsumer()) {
+            consumer.subscribe(List.of("hotel_availability_searches"));
+            var records = consumer.poll(Duration.ofSeconds(10));
+            for (var record : records.records("hotel_availability_searches")) {
+                if (expectedSearchId.equals(record.key())) {
+                    return record;
+                }
+            }
+            throw new IllegalStateException(
+                "No se recibió mensaje con searchId " + expectedSearchId);
         }
     }
 

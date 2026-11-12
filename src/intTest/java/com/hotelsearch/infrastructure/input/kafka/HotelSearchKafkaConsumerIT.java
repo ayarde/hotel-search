@@ -42,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -101,6 +102,9 @@ class HotelSearchKafkaConsumerIT {
 
     @Autowired
     private KafkaListenerEndpointRegistry listenerRegistry;
+
+    @Autowired
+    private ConcurrentKafkaListenerContainerFactory<String, HotelSearchEvent> listenerFactory;
 
     @Autowired
     private HikariDataSource dataSource;
@@ -277,6 +281,27 @@ class HotelSearchKafkaConsumerIT {
         await().atMost(Duration.ofSeconds(15)).ignoreExceptions().untilAsserted(() ->
             assertThat(rowCount(searchId)).as("El evento no debe persistirse")
                 .isZero());
+    }
+
+    /**
+     * Verifica que el listener container tenga habilitadas las observations
+     * de Micrometer para propagar el contexto de tracing.
+     *
+     * Condiciones:
+     * - El contexto Kafka está inicializado
+     *
+     * Se espera:
+     * - El container tenga observationEnabled activo
+     */
+    @Test
+    void consume_ListenerConfigured_EnablesObservations() {
+        // given / when
+        var containerProperties = listenerFactory.getContainerProperties();
+
+        // then
+        assertThat(containerProperties.isObservationEnabled())
+            .as("El listener debe crear observations")
+            .isTrue();
     }
 
     /**

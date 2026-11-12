@@ -2,6 +2,11 @@
 spring:
   application:
     name: hotel-search
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:20s}
   mvc:
     problemdetails:
       enabled: true
@@ -27,14 +32,32 @@ spring:
       auto-offset-reset: earliest
     listener:
       ack-mode: record
+      observation-enabled: true
+    template:
+      observation-enabled: true
+      close-timeout: ${KAFKA_CLOSE_TIMEOUT:10s}
     producer:
       # Esperar ACK de todas las réplicas (1 broker = 1 réplica).
       acks: all
       # Idempotencia nativa del producer ante reintentos del broker.
       enable-idempotence: true
       # Timeouts según TECHNICAL-DECISIONS.md.
-      delivery-timeout-ms: 10000
-      request-timeout-ms: 3000
+      delivery-timeout-ms: ${KAFKA_DELIVERY_TIMEOUT_MS:10000}
+      request-timeout-ms: ${KAFKA_REQUEST_TIMEOUT_MS:3000}
+
+server:
+  shutdown: graceful
+
+logging:
+  level:
+    root: INFO
+  structured:
+    format:
+      console: logstash
+    json:
+      rename:
+        "[@timestamp]": timestamp
+        "[logger_name]": logger
 
 # Topics (creados por KafkaProducerConfig al arrancar).
 app:

@@ -3,9 +3,12 @@ package com.hotelsearch.infrastructure.output.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.hotelsearch.application.HotelSearchUnavailableException;
 import com.hotelsearch.domain.model.HotelSearchEvent;
@@ -14,6 +17,8 @@ import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
 import com.hotelsearch.domain.valueobject.HotelId;
 import com.hotelsearch.domain.valueobject.SearchId;
+import com.hotelsearch.infrastructure.observability.CorrelationContext;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +26,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 
@@ -29,6 +36,55 @@ import org.springframework.kafka.support.SendResult;
  * disponibilidad de la aplicación.
  */
 class KafkaHotelSearchPublisherTest {
+
+    /**
+     * Verifica que el evento incluya el header de correlación y que el
+     * publisher establezca el MDC durante el envío.
+     *
+     * Condiciones:
+     * - El broker responde correctamente al envío
+     *
+     * Se espera:
+     * - El ProducerRecord incluya el searchId como header
+     * - El MDC identifique el componente kafka-producer y la búsqueda
+     * - El MDC quede limpio al finalizar
+     */
+    @Test
+    void publish_ValidEvent_AddsCorrelationHeaderAndClearsMdc() {
+        // given
+        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        SendResult<String, Object> sendResult = mock(SendResult.class);
+        var metadata = mock(org.apache.kafka.clients.producer.RecordMetadata.class);
+        when(sendResult.getRecordMetadata()).thenReturn(metadata);
+        when(metadata.topic()).thenReturn("hotel_availability_searches");
+        when(metadata.partition()).thenReturn(0);
+        when(metadata.offset()).thenReturn(12L);
+        HotelSearchEvent event = validEvent();
+        doAnswer(invocation -> {
+            assertThat(MDC.getCopyOfContextMap())
+                .as("El envío debe ejecutarse dentro del scope de correlación")
+                .containsEntry(CorrelationContext.COMPONENT,
+                    CorrelationContext.KAFKA_PRODUCER_COMPONENT)
+                .containsEntry(CorrelationContext.SEARCH_ID, event.searchId().toString());
+            return CompletableFuture.completedFuture(sendResult);
+        }).when(template).send(any(ProducerRecord.class));
+        KafkaHotelSearchPublisher publisher =
+            new KafkaHotelSearchPublisher(template, "hotel_availability_searches");
+
+        // when
+        publisher.publish(event);
+
+        // then
+        ArgumentCaptor<ProducerRecord<String, Object>> captor =
+            ArgumentCaptor.forClass(ProducerRecord.class);
+        verify(template).send(captor.capture());
+        var header = captor.getValue().headers().lastHeader(CorrelationContext.SEARCH_ID);
+        assertThat(header).as("El evento debe propagar el searchId")
+            .isNotNull();
+        assertThat(new String(header.value(), StandardCharsets.UTF_8))
+            .isEqualTo(event.searchId().toString());
+        assertThat(MDC.getCopyOfContextMap()).isNull();
+    }
 
     /**
      * Verifica que un timeout confirmado por el future se traduzca a error de

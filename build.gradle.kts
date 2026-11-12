@@ -110,6 +110,8 @@ dependencies {
     implementation(libs.spring.boot.starter.jdbc)
     implementation(libs.spring.boot.starter.flyway)
     implementation(libs.spring.boot.starter.kafka)
+    implementation(libs.spring.boot.micrometer.tracing.opentelemetry)
+    implementation(libs.micrometer.tracing.bridge.otel)
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     implementation(libs.flyway.database.oracle)
     runtimeOnly(libs.ojdbc17)

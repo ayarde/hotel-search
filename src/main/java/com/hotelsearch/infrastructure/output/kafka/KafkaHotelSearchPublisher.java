@@ -3,6 +3,9 @@ package com.hotelsearch.infrastructure.output.kafka;
 import com.hotelsearch.application.HotelSearchUnavailableException;
 import com.hotelsearch.application.port.HotelSearchPublisher;
 import com.hotelsearch.domain.model.HotelSearchEvent;
+import com.hotelsearch.infrastructure.observability.CorrelationContext;
+import com.hotelsearch.infrastructure.observability.MdcScope;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
@@ -39,30 +42,38 @@ public class KafkaHotelSearchPublisher implements HotelSearchPublisher {
 
     @Override
     public void publish(HotelSearchEvent event) {
-        var record = new ProducerRecord<String, Object>(topic, event.searchId().value().toString(), event);
+        String searchId = event.searchId().toString();
 
-        try {
-            SendResult<String, Object> result = kafkaTemplate.send(record).get();
-            log.debug("Evento publicado: topic={}, partition={}, offset={}, key={}",
-                result.getRecordMetadata().topic(),
-                result.getRecordMetadata().partition(),
-                result.getRecordMetadata().offset(),
-                event.searchId());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Publicación interrumpida para searchId={}", event.searchId(), e);
-            throw new HotelSearchUnavailableException("Publicación interrumpida", e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            log.error("Fallo publicando evento searchId={}: {}", event.searchId(),
-                cause != null ? cause.getMessage() : e.getMessage(), e);
-            if (cause instanceof TimeoutException) {
-                throw new HotelSearchUnavailableException("Timeout publicando en Kafka", e);
+        try (MdcScope ignored = MdcScope.search(
+            CorrelationContext.KAFKA_PRODUCER_COMPONENT, searchId)) {
+            var record = new ProducerRecord<String, Object>(topic, searchId, event);
+            record.headers().add(
+                CorrelationContext.SEARCH_ID,
+                searchId.getBytes(StandardCharsets.UTF_8));
+
+            try {
+                SendResult<String, Object> result = kafkaTemplate.send(record).get();
+                log.debug("Evento publicado: topic={}, partition={}, offset={}, key={}",
+                    result.getRecordMetadata().topic(),
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset(),
+                    event.searchId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Publicación interrumpida para searchId={}", event.searchId(), e);
+                throw new HotelSearchUnavailableException("Publicación interrumpida", e);
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                log.error("Fallo publicando evento searchId={}: {}", event.searchId(),
+                    cause != null ? cause.getMessage() : e.getMessage(), e);
+                if (cause instanceof TimeoutException) {
+                    throw new HotelSearchUnavailableException("Timeout publicando en Kafka", e);
+                }
+                throw new HotelSearchUnavailableException("Error publicando en Kafka", e);
+            } catch (KafkaException e) {
+                log.error("Kafka no está disponible para searchId={}", event.searchId(), e);
+                throw new HotelSearchUnavailableException("Kafka no está disponible", e);
             }
-            throw new HotelSearchUnavailableException("Error publicando en Kafka", e);
-        } catch (KafkaException e) {
-            log.error("Kafka no está disponible para searchId={}", event.searchId(), e);
-            throw new HotelSearchUnavailableException("Kafka no está disponible", e);
         }
     }
 }

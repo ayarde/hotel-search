@@ -1,10 +1,12 @@
 package com.hotelsearch.infrastructure.config;
 
+import io.micrometer.observation.ObservationRegistry;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -69,8 +71,16 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate(ProducerFactory<String, Object> pf) {
-        return new KafkaTemplate<>(pf);
+    public KafkaTemplate<String, Object> kafkaTemplate(
+        ProducerFactory<String, Object> producerFactory,
+        ObservationRegistry observationRegistry,
+        KafkaProperties kafkaProperties
+    ) {
+        var template = new KafkaTemplate<>(producerFactory);
+        template.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+        template.setObservationRegistry(observationRegistry);
+        template.setCloseTimeout(kafkaProperties.getTemplate().getCloseTimeout());
+        return template;
     }
 
     @Bean
