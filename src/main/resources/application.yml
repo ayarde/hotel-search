@@ -1,0 +1,16 @@
+---
+spring:
+  application:
+    name: hotel-search
+  datasource:
+    # Valores por defecto para el entorno local de Docker Compose.
+    # En producción u otros entornos, sobrescribir por variables de entorno.
+    url: ${JDBC_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+    username: ${DB_USERNAME:hotel_search}
+    password: ${DB_PASSWORD:hotel_search}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      # Pool JDBC acotado; Oracle no escala por más conexiones.
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+  flyway:
+    locations: classpath:db/migration

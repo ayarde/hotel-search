@@ -2,10 +2,14 @@ package com.hotelsearch.domain.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import com.hotelsearch.domain.model.HotelSearch;
+import com.hotelsearch.domain.model.HotelSearchWithCount;
 import com.hotelsearch.domain.valueobject.Ages;
 import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
@@ -24,13 +28,8 @@ class PersistHotelSearchTest {
         }
 
         @Override
-        public java.util.Optional<HotelSearch> findById(SearchId searchId) {
-            return java.util.Optional.empty();
-        }
-
-        @Override
-        public int countEquivalents(HotelSearch search, SearchId excludeSearchId) {
-            return 0;
+        public Optional<HotelSearchWithCount> findByIdWithCount(SearchId searchId) {
+            return Optional.empty();
         }
     }
 

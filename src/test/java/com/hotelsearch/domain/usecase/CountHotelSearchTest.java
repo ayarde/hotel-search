@@ -2,71 +2,47 @@ package com.hotelsearch.domain.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
+
 import com.hotelsearch.domain.model.HotelSearch;
+import com.hotelsearch.domain.model.HotelSearchWithCount;
+import com.hotelsearch.domain.port.HotelSearchRepository;
 import com.hotelsearch.domain.valueobject.Ages;
 import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
 import com.hotelsearch.domain.valueobject.HotelId;
 import com.hotelsearch.domain.valueobject.SearchId;
-import com.hotelsearch.domain.port.HotelSearchRepository;
 
 class CountHotelSearchTest {
 
-    private static class FakeRepository implements HotelSearchRepository {
-        private HotelSearch stored;
-
-        @Override
-        public void save(HotelSearch search) {
-            this.stored = search;
-        }
-
-        @Override
-        public Optional<HotelSearch> findById(SearchId searchId) {
-            if (stored != null && stored.searchId().equals(searchId)) {
-                return Optional.of(stored);
-            }
-            return Optional.empty();
-        }
-
-        @Override
-        public int countEquivalents(HotelSearch search, SearchId excludeSearchId) {
-            if (stored == null || !stored.equals(search)) {
-                return 0;
-            }
-            return 2;
-        }
-    }
-
     /**
-     * Verifica que count devuelve la búsqueda y el conteo de equivalentes cuando existe.
+     * Verifica que el caso de uso devuelve la búsqueda y el conteo de
+     * equivalentes cuando el searchId existe.
      *
      * Condiciones:
-     * - El repositorio contiene una búsqueda con el searchId consultado
-     * - Existen dos búsquedas equivalentes excluyendo la consultada
+     * - El repositorio devuelve la búsqueda con dos equivalentes
      *
      * Se espera:
-     * - Se devuelva la búsqueda encontrada
-     * - El conteo de equivalentes sea 2
+     * - El resultado expone la búsqueda encontrada
+     * - El conteo de equivalentes es 2
      */
     @Test
-    @DisplayName("count_SearchExists_ReturnsSearchAndEquivalentsCount")
     void count_SearchExists_ReturnsSearchAndEquivalentsCount() {
         // given
-        FakeRepository repo = new FakeRepository();
+        HotelSearchRepository repository = mock(HotelSearchRepository.class);
         SearchId id = SearchId.generate();
-        HotelId hotel = HotelId.of("550e8400-e29b-41d4-a716-446655440000");
-        CheckIn checkIn = CheckIn.of(LocalDate.of(2026, 11, 10));
-        CheckOut checkOut = CheckOut.of(LocalDate.of(2026, 11, 29));
-        Ages ages = Ages.of(List.of(29, 28, 4, 3));
-        HotelSearch search = new HotelSearch(id, hotel, checkIn, checkOut, ages);
-        repo.save(search);
-
-        CountHotelSearch useCase = new CountHotelSearch(repo);
+        HotelSearch search = validSearch(id);
+        when(repository.findByIdWithCount(id))
+            .thenReturn(Optional.of(new HotelSearchWithCount(search, 2)));
+        CountHotelSearch useCase = new CountHotelSearch(repository);
 
         // when
         CountHotelSearch.Result result = useCase.execute(new CountHotelSearch.Query(id.toString()));
@@ -77,21 +53,23 @@ class CountHotelSearchTest {
     }
 
     /**
-     * Verifica que count lanza excepción cuando el searchId no existe.
+     * Verifica que un searchId inexistente se distingue de un conteo en
+     * cero: el caso de uso falla en lugar de devolver un resultado con
+     * conteo cero.
      *
      * Condiciones:
-     * - El repositorio no contiene ninguna búsqueda
-     * - El searchId consultado no existe
+     * - El repositorio no encuentra el searchId consultado
      *
      * Se espera:
      * - Se lance IllegalArgumentException
      */
     @Test
-    @DisplayName("count_SearchNotFound_ThrowsIllegalArgumentException")
     void count_SearchNotFound_ThrowsIllegalArgumentException() {
         // given
-        FakeRepository repo = new FakeRepository();
-        CountHotelSearch useCase = new CountHotelSearch(repo);
+        HotelSearchRepository repository = mock(HotelSearchRepository.class);
+        when(repository.findByIdWithCount(SearchId.of("550e8400-e29b-41d4-a716-446655440000")))
+            .thenReturn(Optional.empty());
+        CountHotelSearch useCase = new CountHotelSearch(repository);
 
         // when / then
         assertThatThrownBy(() -> useCase.execute(new CountHotelSearch.Query(
@@ -101,7 +79,7 @@ class CountHotelSearchTest {
     }
 
     /**
-     * Verifica que count rechaza un query nulo.
+     * Verifica que el caso de uso rechaza un query nulo.
      *
      * Condiciones:
      * - El query recibido es null
@@ -110,10 +88,9 @@ class CountHotelSearchTest {
      * - Se lance NullPointerException
      */
     @Test
-    @DisplayName("count_NullQuery_ThrowsNullPointerException")
     void count_NullQuery_ThrowsNullPointerException() {
         // given
-        CountHotelSearch useCase = new CountHotelSearch(new FakeRepository());
+        CountHotelSearch useCase = new CountHotelSearch(mock(HotelSearchRepository.class));
 
         // when / then
         assertThatThrownBy(() -> useCase.execute(null))
@@ -121,7 +98,33 @@ class CountHotelSearchTest {
             .isInstanceOf(NullPointerException.class);
     }
 
+    /**
+     * Verifica que el caso de uso rechaza un searchId con formato inválido.
+     *
+     * Condiciones:
+     * - El query contiene un string que no es un UUID de 36 caracteres
+     *
+     * Se espera:
+     * - Se lance IllegalArgumentException
+     */
+    @Test
+    void count_InvalidSearchIdFormat_ThrowsIllegalArgumentException() {
+        // given
+        CountHotelSearch useCase = new CountHotelSearch(mock(HotelSearchRepository.class));
+
+        // when / then
+        assertThrows(IllegalArgumentException.class,
+            () -> useCase.execute(new CountHotelSearch.Query("no-es-un-uuid")));
+    }
+
     // <editor-fold desc="Helpers">
-    // sin helpers adicionales por ahora
+    private HotelSearch validSearch(SearchId searchId) {
+        return new HotelSearch(
+            searchId,
+            HotelId.of("550e8400-e29b-41d4-a716-446655440000"),
+            CheckIn.of(LocalDate.of(2026, 11, 10)),
+            CheckOut.of(LocalDate.of(2026, 11, 29)),
+            Ages.of(List.of(29, 28, 4, 3)));
+    }
     // </editor-fold>
 }

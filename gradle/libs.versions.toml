@@ -1,6 +1,7 @@
 [versions]
 spring-boot = "4.1.2"
 spring-dependency-management = "1.1.7"
+ojdbc17 = "23.26.3.0.0"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
@@ -10,6 +11,13 @@ spring-dependency-management = { id = "io.spring.dependency-management", version
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc", version.ref = "spring-boot" }
+spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
 
-spring-boot-dependencies = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+flyway-database-oracle = { module = "org.flywaydb:flyway-database-oracle" }
+
+ojdbc17 = { module = "com.oracle.database.jdbc:ojdbc17", version.ref = "ojdbc17" }
+
+testcontainers-oracle-free = { module = "org.testcontainers:testcontainers-oracle-free" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
