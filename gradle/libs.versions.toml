@@ -1,6 +1,7 @@
 [versions]
 spring-boot = "4.1.2"
 spring-dependency-management = "1.1.7"
+springdoc-openapi = "3.2.0"
 ojdbc17 = "23.26.3.0.0"
 
 [plugins]
@@ -15,6 +16,9 @@ spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-st
 spring-boot-starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers", version.ref = "spring-boot" }
+spring-boot-webmvc-test = { module = "org.springframework.boot:spring-boot-webmvc-test", version.ref = "spring-boot" }
+spring-boot-web-server-test = { module = "org.springframework.boot:spring-boot-web-server-test", version.ref = "spring-boot" }
+springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc-openapi" }
 
 flyway-database-oracle = { module = "org.flywaydb:flyway-database-oracle" }
 

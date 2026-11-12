@@ -110,6 +110,7 @@ dependencies {
     implementation(libs.spring.boot.starter.jdbc)
     implementation(libs.spring.boot.starter.flyway)
     implementation(libs.spring.boot.starter.kafka)
+    implementation(libs.springdoc.openapi.starter.webmvc.ui)
     implementation(libs.flyway.database.oracle)
     runtimeOnly(libs.ojdbc17)
     // CVE-2026-110879: forzar Jackson 3.2.4 (versiones estrictas)
@@ -121,6 +122,7 @@ dependencies {
     // CVE-2026-119078: commons-codec 1.23.0
     implementation("commons-codec:commons-codec:1.23.0")
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.boot.webmvc.test)
     // CVE-2026-113602: json-smart ≤2.6.0 vulnerable; forzar versión segura
     testImplementation("net.minidev:json-smart:2.6.1")
     // CVE-2026-110879: alinear Jackson con BOM 3.2.4 (estricto)
@@ -128,6 +130,7 @@ dependencies {
     testImplementation("tools.jackson.core:jackson-databind:3.2.4")
 
     "intTestImplementation"(libs.spring.boot.starter.test)
+    "intTestImplementation"(libs.spring.boot.web.server.test)
     "intTestImplementation"(libs.spring.boot.testcontainers)
     "intTestImplementation"(libs.testcontainers.oracle.free)
     "intTestImplementation"(libs.testcontainers.junit.jupiter)

@@ -2,6 +2,12 @@
 spring:
   application:
     name: hotel-search
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
   datasource:
     # Valores por defecto para el entorno local de Docker Compose.
     # En producción u otros entornos, sobrescribir por variables de entorno.

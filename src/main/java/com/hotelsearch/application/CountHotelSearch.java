@@ -28,7 +28,7 @@ public final class CountHotelSearch {
         SearchId searchId = SearchId.of(query.searchId());
 
         HotelSearchWithCount found = repository.findByIdWithCount(searchId)
-            .orElseThrow(() -> new IllegalArgumentException("searchId no existe: " + searchId));
+            .orElseThrow(() -> new SearchNotFoundException(searchId));
 
         return new Result(found.search(), found.equivalentsCount());
     }

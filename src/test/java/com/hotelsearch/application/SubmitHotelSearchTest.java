@@ -331,6 +331,36 @@ class SubmitHotelSearchTest {
             .isInstanceOf(IllegalArgumentException.class);
     }
 
+    /**
+     * Verifica que la indisponibilidad reportada por Kafka durante la
+     * publicación se propague sin ocultarse.
+     *
+     * Condiciones:
+     * - El publisher lanza HotelSearchUnavailableException
+     *
+     * Se espera:
+     * - El caso de uso propague la misma excepción
+     */
+    @Test
+    void submit_PublisherUnavailable_PropagatesException() {
+        // given
+        HotelSearchPublisher publisher = event -> {
+            throw new HotelSearchUnavailableException("Kafka no está disponible");
+        };
+        SubmitHotelSearch useCase = new SubmitHotelSearch(publisher, FIXED_CLOCK);
+        SubmitHotelSearch.Command command = new SubmitHotelSearch.Command(
+            "550e8400-e29b-41d4-a716-446655440000",
+            LocalDate.of(2026, 11, 10),
+            LocalDate.of(2026, 11, 29),
+            List.of(29));
+
+        // when / then
+        assertThatThrownBy(() -> useCase.execute(command))
+            .as("La indisponibilidad de Kafka debe propagarse")
+            .isInstanceOf(HotelSearchUnavailableException.class)
+            .hasMessage("Kafka no está disponible");
+    }
+
     // <editor-fold desc="Helpers">
     // sin helpers adicionales por ahora
     // </editor-fold>

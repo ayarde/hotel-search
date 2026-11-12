@@ -108,15 +108,15 @@ class CountHotelSearchIT {
      * - Tabla vacía al iniciar el test
      *
      * Se espera:
-     * - Se lance IllegalArgumentException con el searchId en el mensaje
+     * - Se lance SearchNotFoundException con el searchId en el mensaje
      */
     @Test
-    void count_SearchNotFound_ThrowsIllegalArgumentException() {
+    void count_SearchNotFound_ThrowsSearchNotFoundException() {
         // given
         String unknownId = "00000000-0000-4000-8000-000000000000";
 
         // when
-        var exception = assertThrows(IllegalArgumentException.class,
+        var exception = assertThrows(SearchNotFoundException.class,
             () -> useCase.execute(new CountHotelSearch.Query(unknownId)),
             "Un searchId inexistente debe fallar y no devolver conteo cero");
 

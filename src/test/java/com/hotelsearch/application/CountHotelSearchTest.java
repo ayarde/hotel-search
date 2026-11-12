@@ -61,10 +61,10 @@ class CountHotelSearchTest {
      * - El repositorio no encuentra el searchId consultado
      *
      * Se espera:
-     * - Se lance IllegalArgumentException
+     * - Se lance SearchNotFoundException
      */
     @Test
-    void count_SearchNotFound_ThrowsIllegalArgumentException() {
+    void count_SearchNotFound_ThrowsSearchNotFoundException() {
         // given
         HotelSearchRepository repository = mock(HotelSearchRepository.class);
         when(repository.findByIdWithCount(SearchId.of("550e8400-e29b-41d4-a716-446655440000")))
@@ -74,8 +74,8 @@ class CountHotelSearchTest {
         // when / then
         assertThatThrownBy(() -> useCase.execute(new CountHotelSearch.Query(
             "550e8400-e29b-41d4-a716-446655440000")))
-            .as("Un searchId inexistente debe lanzar IllegalArgumentException")
-            .isInstanceOf(IllegalArgumentException.class);
+            .as("Un searchId inexistente debe lanzar SearchNotFoundException")
+            .isInstanceOf(SearchNotFoundException.class);
     }
 
     /**
