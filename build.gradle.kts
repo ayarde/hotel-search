@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.jdbc)
     implementation(libs.spring.boot.starter.flyway)
+    implementation(libs.spring.boot.starter.kafka)
     implementation(libs.flyway.database.oracle)
     runtimeOnly(libs.ojdbc17)
     // CVE-2026-110879: forzar Jackson 3.2.4 (versiones estrictas)
@@ -62,6 +63,8 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
     // CVE-2026-119078: commons-codec 1.23.0
     implementation("commons-codec:commons-codec:1.23.0")
+    // Jackson JavaTimeModule para serializar LocalDate en eventos Kafka
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
     testImplementation(libs.spring.boot.starter.test)
     // CVE-2026-113602: json-smart ≤2.6.0 vulnerable; forzar versión segura
@@ -76,6 +79,9 @@ dependencies {
     "intTestImplementation"(libs.spring.boot.testcontainers)
     "intTestImplementation"(libs.testcontainers.oracle.free)
     "intTestImplementation"(libs.testcontainers.junit.jupiter)
+    "intTestImplementation"(libs.testcontainers.kafka)
+    // Jackson para deserializar mensajes en integration tests
+    "intTestImplementation"("com.fasterxml.jackson.core:jackson-databind")
 }
 
 val integrationTest by tasks.registering(Test::class) {

@@ -14,3 +14,20 @@ spring:
       maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
   flyway:
     locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # Esperar ACK de todas las réplicas (1 broker = 1 réplica).
+      acks: all
+      # Idempotencia nativa del producer (exactly-once en el broker).
+      enable-idempotence: true
+      # Timeouts según TECHNICAL-DECISIONS.md.
+      delivery-timeout-ms: 10000
+      request-timeout-ms: 3000
+
+# Topics (creados por KafkaProducerConfig al arrancar).
+app:
+  kafka:
+    topics:
+      hotel-availability-searches: hotel_availability_searches
+      hotel-search-dlt: hotel_search_dlt

@@ -14,7 +14,6 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
 
 /**
  * Implementación JDBC del puerto de persistencia sobre Oracle.
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Component;
  * conteo se resuelve con la sentencia única definida en
  * TECHNICAL-DECISIONS.md (§7 Oracle) y usa bind parameters.</p>
  */
-@Component
 public class JdbcHotelSearchRepository implements HotelSearchRepository {
 
     private static final String INSERT_SQL = """
