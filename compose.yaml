@@ -1,0 +1,89 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      JDBC_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USERNAME: hotel_search
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD debe definirse en .env}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      KAFKA_CONSUMER_GROUP_ID: ${KAFKA_CONSUMER_GROUP_ID:-hotel-search-consumer}
+      DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-10}
+      SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-20s}
+      KAFKA_DELIVERY_TIMEOUT_MS: ${KAFKA_DELIVERY_TIMEOUT_MS:-10000}
+      KAFKA_REQUEST_TIMEOUT_MS: ${KAFKA_REQUEST_TIMEOUT_MS:-3000}
+      KAFKA_CLOSE_TIMEOUT: ${KAFKA_CLOSE_TIMEOUT:-10s}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      oracle:
+        condition: service_healthy
+    stop_grace_period: 45s
+
+  kafka:
+    image: apache/kafka:4.4.0
+    hostname: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,\
+        INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_LISTENERS: CONTROLLER://:29093,INTERNAL://:19092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka:19092,\
+        EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT:-9092}"
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-4L6g3nShT-eMCtK--X86sw}
+    ports:
+      - "${KAFKA_EXTERNAL_PORT:-9092}:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          /opt/kafka/bin/kafka-broker-api-versions.sh
+          --bootstrap-server localhost:19092 >/dev/null 2>&1
+      interval: 10s
+      timeout: 10s
+      retries: 18
+      start_period: 20s
+    stop_grace_period: 30s
+
+  oracle:
+    image: container-registry.oracle.com/database/free:23.26.3.0-lite
+    hostname: oracle
+    environment:
+      ORACLE_PWD: ${ORACLE_PWD:?ORACLE_PWD debe definirse en .env}
+      ORACLE_PDB: FREEPDB1
+      APP_USER_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD debe definirse en .env}
+    ports:
+      - "${ORACLE_PORT:-1521}:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./docker/oracle/startup:/opt/oracle/scripts/startup:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/oracle/checkDBStatus.sh >/dev/null 2>&1
+      interval: 15s
+      timeout: 30s
+      retries: 12
+      start_period: 60s
+    stop_grace_period: 60s
+
+volumes:
+  kafka-data:
+  oracle-data:

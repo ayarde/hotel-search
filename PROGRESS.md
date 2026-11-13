@@ -3,12 +3,12 @@
 Estado del proyecto por fases, con el alcance ya implementado, su
 validación y lo que queda pendiente.
 
-Última actualización: 2026-11-12 · Rama `main` · Fases 0–6 y 8 implementadas
+Última actualización: 2026-11-12 · Rama `main` · Fases 0–8 implementadas
 
 ## Estado general
 
-Fases 0, 1, 2, 3, 4, 5, 6 y 8 implementadas y validadas. Las fases 7 y 9
-siguen pendientes.
+Fases 0, 1, 2, 3, 4, 5, 6, 7 y 8 implementadas y validadas. La fase 9 sigue
+pendiente.
 
 El flujo completo que ya funciona es: POST REST → publicación de un evento
 en `hotel_availability_searches` → consumer Kafka → validación estructural →
@@ -105,7 +105,7 @@ la búsqueda y su cantidad de equivalentes.
 
 ### Fase 6 — Virtual Threads, logging y configuración operativa
 
-- Implementada en el working tree actual, pendiente de commit.
+- Commit: `a6e0082`
 - Virtual Threads habilitados con `spring.threads.virtual.enabled` y HikariCP
   configurado con un máximo inicial de 10 conexiones.
 - Bootstrap servers, JDBC, credenciales, timeouts del producer, timeout de
@@ -126,6 +126,27 @@ la búsqueda y su cantidad de equivalentes.
   integración que verifican el JSON, los headers de correlación y la
   propagación W3C del tracing.
 
+### Fase 7 — Docker, Docker Compose y Flyway end-to-end
+
+- Implementada en el working tree actual, pendiente de commit.
+- `Dockerfile` multi-stage: builder con Eclipse Temurin JDK 25 y runtime con
+  JRE 25. El runtime usa el usuario no root `hotelsearch` (UID 10001) y
+  contiene únicamente el JAR ejecutable de Spring Boot.
+- `compose.yaml` con los servicios `app`, `kafka` y `oracle`. La aplicación
+  depende de que Kafka y Oracle estén `healthy` antes de iniciar.
+- Kafka 4.4.0 en KRaft combinado, con listener interno para la aplicación,
+  listener externo para el host y listener de controller no publicado.
+- Oracle Database Free 23.26.3.0 oficial, con volumen persistente en
+  `/opt/oracle/oradata` y script idempotente para aprovisionar el usuario
+  dedicado `hotel_search` y sus permisos de esquema.
+- Health checks reales para Kafka y Oracle, volúmenes nombrados para Kafka y
+  Oracle, y tiempo de gracia para el shutdown graceful de los tres servicios.
+- `.env.example` versionado con puertos, timeouts y credenciales de ejemplo;
+  `.env` continúa ignorado y `.dockerignore` evita incluir secretos en el
+  contexto de build.
+- Flyway aplica `V1__initial_schema.sql` automáticamente al arrancar y
+  conserva el historial entre reinicios.
+
 ### Fase 8 — JaCoCo, suite de tests y build final
 
 - Commit: `ce7a944`
@@ -137,12 +158,6 @@ la búsqueda y su cantidad de equivalentes.
 
 ## Fases pendientes
 
-### Fase 7 — Docker, Docker Compose y Flyway end-to-end
-
-- Dockerfile multi-stage (build con JDK 25, runtime con JRE 25 y usuario no
-  root), Compose con app, Kafka KRaft y Oracle Free, health checks,
-  volúmenes persistentes y `.env.example`.
-
 ### Fase 9 — Documentación y entrega
 
 - README con propósito, arquitectura, comandos Docker y Gradle, contrato
@@ -150,12 +165,15 @@ la búsqueda y su cantidad de equivalentes.
 
 ## Validaciones actuales
 
-Comandos ejecutados con la implementación de la Fase 6:
+Comandos ejecutados con la implementación de la Fase 7:
 
 ```bash
 ./gradlew clean build
 ./gradlew clean build -PintegrationTest=true
 ./gradlew jacocoTestReport
+docker compose config --quiet
+docker compose up --build -d
+docker compose ps
 ```
 
 - Unit tests: 110 pruebas en 21 clases, 0 fallos, 0 errores, 0 omitidas.
@@ -164,6 +182,17 @@ Comandos ejecutados con la implementación de la Fase 6:
 - Cobertura JaCoCo sobre el código de producción: `LINE` 93,5 %, `BRANCH`
   91,3 %, `INSTRUCTION` 93,0 % y `METHOD` 91,8 % (umbral bloqueante: 80 % en
   líneas y branches).
+- La configuración de Compose es válida y levanta los tres servicios. Kafka y
+  Oracle alcanzan estado `healthy`; la aplicación responde HTTP y se ejecuta
+  con UID 10001.
+- Flyway crea `hotel_search`, registra la versión 1 como aplicada y valida el
+  esquema sin nuevas migraciones después de reiniciar el stack.
+- El flujo end-to-end devuelve 202 en dos POST con búsquedas equivalentes,
+  genera `searchId` distintos y responde `searchCount = 1` en los GET.
+- Tras `docker compose down` y un nuevo arranque, la búsqueda y su conteo
+  siguen disponibles, lo que confirma la persistencia del volumen Oracle.
+- Los topics `hotel_availability_searches` y `hotel_search_dlt` quedan con
+  una partición y replication factor 1.
 
 ## Estructura de paquetes actual
 
@@ -211,6 +240,6 @@ Comandos ejecutados con la implementación de la Fase 6:
 - El escenario de fallo transitorio simula la caída de Oracle pausando el
   contenedor y evictando conexiones del pool, por lo que requiere acceso al
   socket de Docker.
-- El siguiente incremento corresponde a la Fase 7: Dockerfile, Docker Compose,
-  health checks y ejecución end-to-end con Flyway, sin modificar el contrato
-  HTTP ni las garantías Kafka/Oracle.
+- El siguiente incremento corresponde a la Fase 9: README, comandos de
+  ejecución, contrato HTTP, consistencia eventual, política de reintentos,
+  DLT y operación de Docker Compose.
