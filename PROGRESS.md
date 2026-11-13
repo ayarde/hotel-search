@@ -158,8 +158,7 @@ la búsqueda y su cantidad de equivalentes.
 
 ### Fase 9 — Documentación y entrega
 
-- Estado: implementada y validada en el working tree actual; pendiente de
-  commit.
+- Commit: `d601f44`
 - `README.md` documenta propósito, arquitectura, stack, requisitos,
   onboarding, configuración de `.env`, puertos, API, ejemplos, OpenAPI,
   builds, operación de Docker Compose y ubicaciones de los reportes.
@@ -254,15 +253,15 @@ docker compose ps
 
 ## Notas para la continuación
 
-- `AGENTS.md`, `IMPLEMENTATION-PLAN.md`, `REQUIREMENTS.md`,
-  `TECHNICAL-DECISIONS.md` y `TESTING_RULES.md` siguen sin trackear en Git;
-  son documentos de trabajo, no código de la aplicación.
+- La documentación de soporte del proyecto (`AGENTS.md`,
+  `IMPLEMENTATION-PLAN.md`, `REQUIREMENTS.md`, `TECHNICAL-DECISIONS.md` y
+  `TESTING_RULES.md`) está versionada en Git junto con `PROGRESS.md` y
+  `README.md`.
 - Al cerrar el contexto de la prueba de integración del consumer, el cliente
   Kafka deja logs `WARN` de conexión a `localhost:9092` porque Testcontainers
   ya detuvo el broker. Es ruido de apagado, no un fallo.
 - El escenario de fallo transitorio simula la caída de Oracle pausando el
   contenedor y evictando conexiones del pool, por lo que requiere acceso al
   socket de Docker.
-- La Fase 9 queda completada. El siguiente paso es registrar en Git y
-  publicar el README, la actualización de este documento y los commits
-  locales de las fases 6 y 7.
+- La Fase 9 y la documentación de soporte quedan completadas y registradas
+  en Git.
