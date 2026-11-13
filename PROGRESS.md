@@ -3,12 +3,12 @@
 Estado del proyecto por fases, con el alcance ya implementado, su
 validación y lo que queda pendiente.
 
-Última actualización: 2026-11-12 · Rama `main` · Fases 0–8 implementadas
+Última actualización: 2026-11-12 · Rama `main` · Fases 0–9 implementadas
 
 ## Estado general
 
-Fases 0, 1, 2, 3, 4, 5, 6, 7 y 8 implementadas y validadas. La fase 9 sigue
-pendiente.
+Fases 0, 1, 2, 3, 4, 5, 6, 7, 8 y 9 implementadas y validadas. No quedan
+incrementos funcionales pendientes del plan.
 
 El flujo completo que ya funciona es: POST REST → publicación de un evento
 en `hotel_availability_searches` → consumer Kafka → validación estructural →
@@ -80,7 +80,7 @@ la búsqueda y su cantidad de equivalentes.
 
 ### Fase 5 — API REST y contrato HTTP
 
-- Implementación consolidada en el commit de la Fase 5.
+- Commit: `8817c78`
 - `HotelSearchController` expone `POST /search` y `GET /count`. El POST
   responde 202 Accepted con el `searchId` solo después del ACK de Kafka; el
   GET devuelve la búsqueda completa y el count sin incluir la propia
@@ -128,7 +128,7 @@ la búsqueda y su cantidad de equivalentes.
 
 ### Fase 7 — Docker, Docker Compose y Flyway end-to-end
 
-- Implementada en el working tree actual, pendiente de commit.
+- Commit: `b96827f`
 - `Dockerfile` multi-stage: builder con Eclipse Temurin JDK 25 y runtime con
   JRE 25. El runtime usa el usuario no root `hotelsearch` (UID 10001) y
   contiene únicamente el JAR ejecutable de Spring Boot.
@@ -156,16 +156,29 @@ la búsqueda y su cantidad de equivalentes.
   del código de producción (excluidos `config/`, `*Configuration.class`,
   `HotelSearchApplication` e `infrastructure/output/kafka/`).
 
-## Fases pendientes
-
 ### Fase 9 — Documentación y entrega
 
-- README con propósito, arquitectura, comandos Docker y Gradle, contrato
-  HTTP, consistencia eventual, política de reintentos y DLT.
+- Estado: implementada y validada en el working tree actual; pendiente de
+  commit.
+- `README.md` documenta propósito, arquitectura, stack, requisitos,
+  onboarding, configuración de `.env`, puertos, API, ejemplos, OpenAPI,
+  builds, operación de Docker Compose y ubicaciones de los reportes.
+- La guía explica la consistencia eventual, el orden entre el commit de
+  Oracle y el ACK de Kafka, la entrega at-least-once, los tres reintentos
+  adicionales, el DLT y las limitaciones del broker único.
+- El comando principal `docker compose up --build`, los dos comandos de build
+  y la eliminación opcional de volúmenes están documentados.
+- Los ejemplos generan el check-in con la fecha local para no quedar
+  obsoletos por la ventana temporal del dominio. El README muestra tanto el
+  resultado `searchCount = 0` para una única búsqueda como el resultado
+  `searchCount = 2` al consultar una de tres búsquedas equivalentes.
+- `.env` continúa ignorado, `.env.example` solo contiene valores de ejemplo
+  y el README no incorpora secretos.
 
 ## Validaciones actuales
 
-Comandos ejecutados con la implementación de la Fase 7:
+Comandos ejecutados después de implementar la Fase 9, tanto en el working
+tree como en una copia limpia del estado entregable:
 
 ```bash
 ./gradlew clean build
@@ -185,6 +198,16 @@ docker compose ps
 - La configuración de Compose es válida y levanta los tres servicios. Kafka y
   Oracle alcanzan estado `healthy`; la aplicación responde HTTP y se ejecuta
   con UID 10001.
+- La guía se validó desde una copia limpia del estado entregable, con un
+  proyecto Compose y volúmenes nuevos. Ambos builds finalizan
+  correctamente y el stack se levantó siguiendo el README.
+- OpenAPI responde `200` en `/v3/api-docs` y Swagger UI responde `200`
+  después de seguir su redirección.
+- El flujo end-to-end desde la copia limpia devuelve `202` en dos POST con
+  búsquedas equivalentes, genera `searchId` distintos y responde
+  `searchCount = 1` en el GET.
+- El stack de validación se detuvo con `docker compose down -v`; sus volúmenes
+  temporales fueron eliminados.
 - Flyway crea `hotel_search`, registra la versión 1 como aplicada y valida el
   esquema sin nuevas migraciones después de reiniciar el stack.
 - El flujo end-to-end devuelve 202 en dos POST con búsquedas equivalentes,
@@ -240,6 +263,6 @@ docker compose ps
 - El escenario de fallo transitorio simula la caída de Oracle pausando el
   contenedor y evictando conexiones del pool, por lo que requiere acceso al
   socket de Docker.
-- El siguiente incremento corresponde a la Fase 9: README, comandos de
-  ejecución, contrato HTTP, consistencia eventual, política de reintentos,
-  DLT y operación de Docker Compose.
+- La Fase 9 queda completada. El siguiente paso es registrar en Git y
+  publicar el README, la actualización de este documento y los commits
+  locales de las fases 6 y 7.
