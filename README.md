@@ -389,18 +389,30 @@ El comando equivalente desde cero es:
 
 ### Informe de cobertura
 
-La tarea de cobertura exige al menos 80 % de líneas y branches sobre el
-código de producción incluido en la medición. Para generar el informe:
+La tarea `jacocoTestCoverageVerification` exige al menos 80 % de líneas y
+branches y hace fallar el build si la cobertura baja de ese umbral. Solo
+se excluyen de la medición las clases de configuración pura, es decir,
+declaraciones de beans sin lógica: `HotelSearchApplication`, `AppConfig`,
+`DataSourceConfig`, `JdbcOutputConfig`, `KafkaOutputConfig` y
+`OpenApiConfig`. La lista explícita, con el motivo de cada exclusión, está en
+`build.gradle.kts`. `KafkaConsumerConfig`, `KafkaProducerConfig` y el
+publisher Kafka se miden.
+
+Los dos informes se generan con cada ejecución de `test`; también se pueden
+pedir por separado:
 
 ```bash
-./gradlew jacocoTestReport
+./gradlew jacocoTestReport jacocoUnfilteredReport
 ```
 
 Reportes disponibles:
 
 - Tests unitarios: `build/reports/tests/test/index.html`.
 - Tests de integración: `build/reports/tests/integrationTest/index.html`.
-- Cobertura: `build/reports/jacoco/test/html/index.html`.
+- Cobertura verificada, con las exclusiones anteriores:
+  `build/reports/jacoco/test/html/index.html`.
+- Cobertura sin ninguna exclusión, solo informativa:
+  `build/reports/jacoco/unfiltered/html/index.html`.
 
 ## Operación con Docker Compose
 

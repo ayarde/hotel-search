@@ -224,6 +224,50 @@ la búsqueda y su cantidad de equivalentes.
   `HotelSearchKafkaConsumerIT`: duplicado, commit de offset y DLT), sin
   fallos ni tests omitidos. JaCoCo: `LINE` 93,5 % y `BRANCH` 91,3 %.
 
+### Fase 12 — Cobertura real sin exclusiones artificiales
+
+- Rama: `test/fase-12-cobertura-real`.
+- `coverageExcludes` pasa de globs amplios a una lista explícita de clases,
+  cada una con su motivo: `HotelSearchApplication`, `AppConfig`,
+  `DataSourceConfig`, `JdbcOutputConfig`, `KafkaOutputConfig` y
+  `OpenApiConfig`. Se quitaron `**/config/**`, `**/*Configuration.class` y
+  `**/infrastructure/output/kafka/**`; `KafkaConsumerConfig`,
+  `KafkaProducerConfig` y `KafkaHotelSearchPublisher` quedan medidos.
+- Nueva tarea `jacocoUnfilteredReport`, sin exclusiones y solo informativa
+  (`build/reports/jacoco/unfiltered/html/index.html`). `test` genera ambos
+  reportes y luego corre `jacocoTestCoverageVerification`.
+- `KafkaHotelSearchPublisherTest`: ACK exitoso (topic, key y value),
+  timeout con la cadena de causas, `ExecutionException` sin causa,
+  `InterruptedException` que restablece el flag de interrupción, además de
+  los casos existentes de otra causa y `KafkaException` síncrona.
+- `KafkaConsumerConfigTest`: consumer factory (propiedades, deserializadores,
+  JSON válido e inválido), cada error no reintentable va al DLT en el primer
+  intento y el listener declarado persiste el evento mapeado.
+- `KafkaProducerConfigTest` (nuevo, con `ApplicationContextRunner`): valores
+  por defecto del producer, overrides externos, JSON sin headers de tipo,
+  propiedades del `KafkaTemplate` y topics con 1 partición y 1 réplica.
+- Mutaciones manuales de control: quitar `interrupt()` del publisher o
+  `BadSqlGrammarException` de la lista no reintentable hace fallar los tests.
+- Umbral: con el mínimo subido temporalmente a 0,99,
+  `jacocoTestCoverageVerification` falla con "Rule violated for bundle
+  hotel-search"; se restauró a 0,80.
+- Cobertura antes, con las exclusiones originales: `LINE` 93,7 % (326/348) y
+  `BRANCH` 91,5 % (86/94). Con las exclusiones reducidas y sin tests nuevos:
+  `LINE` 84,9 % (372/438) y `BRANCH` 90,8 % (89/98). Sin ninguna exclusión:
+  `LINE` 81,6 % (373/457) y `BRANCH` 90,8 % (89/98).
+- Cobertura después, con las exclusiones reducidas: `LINE` 95,0 % (416/438) y
+  `BRANCH` 91,8 % (90/98). Sin ninguna exclusión: `LINE` 91,2 % (417/457) y
+  `BRANCH` 91,8 % (90/98).
+- Validación: `./gradlew clean build -PintegrationTest=true` en verde con 142
+  unit tests y 24 integration tests, sin fallos ni tests omitidos.
+- Correcciones de la revisión nativa (aprobada, hallazgos no bloqueantes):
+  `KafkaProducerConfigTest` enlaza `KafkaProperties` desde el entorno y
+  verifica `spring.kafka.template.*` por comportamiento observable (la
+  observation del envío y `close(7s)` del producer), sin reflexión sobre
+  campos privados. El evento de prueba vive en `HotelSearchEventFixtures`,
+  los tests usan imports en lugar de nombres calificados y `assertThrows`
+  de forma uniforme, y el test del listener compara la búsqueda completa.
+
 ## Validaciones actuales
 
 Comandos ejecutados después de implementar la Fase 9, tanto en el working

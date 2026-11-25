@@ -303,7 +303,10 @@ retorna. Spring Kafka puede entonces confirmar el offset correspondiente.
 - Aplicar estrictamente las reglas de `TESTING_RULES.md`.
 - `./gradlew build`: unit tests.
 - `./gradlew build -PintegrationTest=true`: unit + integration.
-- JaCoCo mínimo 80% en branches y líneas.
+- JaCoCo mínimo 80% en branches y líneas. Solo se excluyen las clases de
+  configuración pura (declaraciones de beans sin lógica) y la clase de
+  arranque, listadas una por una en `build.gradle.kts`. Un segundo reporte
+  sin exclusiones queda como referencia y no bloquea el build.
 
 ## 12. Docker y Docker Compose
 

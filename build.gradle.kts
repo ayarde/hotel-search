@@ -18,13 +18,23 @@ jacoco {
     reportsDirectory = layout.buildDirectory.dir("reports/jacoco")
 }
 
-// Exclusiones para Java Configurations
+// Exclusiones de cobertura: solo clases de configuración pura, es decir,
+// declaraciones de beans sin ramas ni reglas propias. Lo que tiene lógica
+// (KafkaConsumerConfig, KafkaProducerConfig, adaptadores) queda medido.
 val coverageExcludes =
     listOf(
-        "**/config/**",
-        "**/*Configuration.class",
-        "**/HotelSearchApplication.class",
-        "**/infrastructure/output/kafka/**",
+        // Punto de entrada: solo invoca SpringApplication.run.
+        "com/hotelsearch/HotelSearchApplication.class",
+        // Instancia los casos de uso con sus puertos; no tiene lógica.
+        "com/hotelsearch/infrastructure/config/AppConfig.class",
+        // Declara el JdbcClient sobre el DataSource de Spring Boot.
+        "com/hotelsearch/infrastructure/config/DataSourceConfig.class",
+        // Declara el adaptador JDBC del repositorio.
+        "com/hotelsearch/infrastructure/config/JdbcOutputConfig.class",
+        // Declara el adaptador Kafka del publisher.
+        "com/hotelsearch/infrastructure/config/KafkaOutputConfig.class",
+        // Metadatos estáticos de OpenAPI.
+        "com/hotelsearch/infrastructure/config/OpenApiConfig.class",
     )
 
 val filteredClasses = {
@@ -37,7 +47,7 @@ val filteredClasses = {
     )
 }
 
-tasks.withType<JacocoReport> {
+tasks.named<JacocoReport>("jacocoTestReport") {
     reports {
         html.required.set(true)
         xml.required.set(true)
@@ -45,6 +55,24 @@ tasks.withType<JacocoReport> {
     }
     classDirectories.setFrom(filteredClasses())
 }
+
+// Reporte informativo sin ninguna exclusión, para transparencia. No bloquea
+// el build: el umbral se verifica sobre el reporte con exclusiones reducidas.
+val jacocoUnfilteredReport =
+    tasks.register<JacocoReport>("jacocoUnfilteredReport") {
+        description = "Genera el reporte JaCoCo de unit tests sin exclusiones."
+        group = "verification"
+        dependsOn(tasks.named("test"))
+        executionData(tasks.named<Test>("test").get())
+        sourceSets(sourceSets.main.get())
+        reports {
+            html.required.set(true)
+            xml.required.set(true)
+            csv.required.set(false)
+            html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/unfiltered/html"))
+            xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/unfiltered/jacocoUnfilteredReport.xml"))
+        }
+    }
 
 tasks.withType<JacocoCoverageVerification> {
     classDirectories.setFrom(filteredClasses())
@@ -66,7 +94,7 @@ tasks.withType<JacocoCoverageVerification> {
 
 // Only run coverage verification on main test task (not integrationTest)
 tasks.named<Test>("test") {
-    finalizedBy(tasks.jacocoTestCoverageVerification)
+    finalizedBy(tasks.jacocoTestReport, jacocoUnfilteredReport, tasks.jacocoTestCoverageVerification)
 }
 
 repositories {
