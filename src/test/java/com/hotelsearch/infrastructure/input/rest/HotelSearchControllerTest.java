@@ -2,6 +2,7 @@ package com.hotelsearch.infrastructure.input.rest;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -23,7 +24,11 @@ import com.hotelsearch.domain.valueobject.HotelId;
 import com.hotelsearch.domain.valueobject.SearchId;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -41,7 +46,7 @@ class HotelSearchControllerTest {
     private static final String SEARCH_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
     private static final String VALID_BODY = """
         {
-          "hotelId": "550e8400-e29b-41d4-a716-446655440000",
+          "hotelId": "1234aBc",
           "checkIn": "09/11/2026",
           "checkOut": "29/11/2026",
           "ages": [29, 28, 4, 3]
@@ -84,7 +89,7 @@ class HotelSearchControllerTest {
             .andExpect(jsonPath("$.searchId").value(SEARCH_ID));
 
         // then
-        verify(submitHotelSearch).execute(any());
+        verify(submitHotelSearch).execute(argThat(command -> "1234aBc".equals(command.hotelId())));
     }
 
     /**
@@ -218,25 +223,27 @@ class HotelSearchControllerTest {
     }
 
     /**
-     * Verifica que un hotelId que no sea UUID canónico se rechace con 400.
+     * Verifica que un hotelId con espacios en blanco o demasiado largo se
+     * rechace con 400 antes de invocar el caso de uso.
      *
      * Condiciones:
-     * - El body contiene un valor arbitrario en hotelId
+     * - El hotelId tiene un espacio en medio, al inicio, un tab o 65 caracteres
      *
      * Se espera:
      * - Status 400 con el error asociado al campo hotelId
      */
-    @Test
-    void submit_InvalidHotelId_ReturnsBadRequest() throws Exception {
+    @ParameterizedTest
+    @MethodSource("invalidHotelIds")
+    void submit_InvalidHotelId_ReturnsBadRequest(String jsonHotelId, String expectedError) throws Exception {
         // given
         String body = """
             {
-              "hotelId": "no-es-un-uuid",
+              "hotelId": "%s",
               "checkIn": "09/11/2026",
               "checkOut": "29/11/2026",
               "ages": [29]
             }
-            """;
+            """.formatted(jsonHotelId);
 
         // when
         mockMvc.perform(post("/search")
@@ -244,10 +251,19 @@ class HotelSearchControllerTest {
                 .content(body))
             .andExpect(status().isBadRequest())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.errors.hotelId[0]").value("hotelId debe ser un UUID canónico válido"));
+            .andExpect(jsonPath("$.errors.hotelId[0]").value(expectedError));
 
         // then
         verifyNoInteractions(submitHotelSearch);
+    }
+
+    private static Stream<Arguments> invalidHotelIds() {
+        String whitespaceError = "hotelId no permite espacios en blanco";
+        return Stream.of(
+            Arguments.of("1234 aBc", whitespaceError),
+            Arguments.of(" 1234aBc", whitespaceError),
+            Arguments.of("1234\\taBc", whitespaceError),
+            Arguments.of("A".repeat(65), "hotelId no puede superar 64 caracteres"));
     }
 
     /**

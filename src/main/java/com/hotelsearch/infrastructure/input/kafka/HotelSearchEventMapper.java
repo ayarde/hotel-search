@@ -37,7 +37,7 @@ public class HotelSearchEventMapper {
                 throw new InvalidHotelSearchEventException("El searchId debe ser un UUIDv4");
             }
 
-            HotelId hotelId = HotelId.of(event.hotelId().value().toString());
+            HotelId hotelId = HotelId.of(event.hotelId().value());
             CheckIn checkIn = CheckIn.of(event.checkIn().value());
             CheckOut checkOut = CheckOut.of(event.checkOut().value());
             if (!checkOut.value().isAfter(checkIn.value())) {

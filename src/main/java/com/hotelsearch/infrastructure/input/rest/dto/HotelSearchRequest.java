@@ -21,14 +21,15 @@ import java.util.List;
 @Schema(name = "HotelSearchRequest", description = "Búsqueda de hotel que se registrará")
 public record HotelSearchRequest(
     @NotBlank(message = "hotelId es obligatorio")
-    @Pattern(
-        regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-        message = "hotelId debe ser un UUID canónico válido"
-    )
+    @Size(max = 64, message = "hotelId no puede superar 64 caracteres")
+    @Pattern(regexp = "^\\S*$", message = "hotelId no permite espacios en blanco")
     @Schema(
-        description = "UUID canónico del hotel",
-        example = "550e8400-e29b-41d4-a716-446655440000",
-        pattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        description = "Identificador del hotel definido por el proveedor. Texto de 1 a 64 "
+            + "caracteres, sin espacios en blanco; se compara de forma exacta",
+        example = "1234aBc",
+        minLength = 1,
+        maxLength = 64,
+        pattern = "^\\S+$"
     )
     String hotelId,
 

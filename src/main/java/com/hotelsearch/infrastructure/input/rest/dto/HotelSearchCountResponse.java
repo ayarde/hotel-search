@@ -13,7 +13,7 @@ public record HotelSearchCountResponse(
     @Schema(description = "UUID de la búsqueda consultada")
     String searchId,
 
-    @Schema(description = "UUID canónico del hotel")
+    @Schema(description = "Identificador del hotel tal como se recibió", example = "1234aBc")
     String hotelId,
 
     @Schema(

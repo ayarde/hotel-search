@@ -62,7 +62,7 @@ public class JdbcHotelSearchRepository implements HotelSearchRepository {
         try {
             jdbcTemplate.update(INSERT_SQL,
                 search.searchId().value().toString(),
-                search.hotelId().value().toString(),
+                search.hotelId().value(),
                 search.checkIn().value(),
                 search.checkOut().value(),
                 serializeAges(search.ages()));

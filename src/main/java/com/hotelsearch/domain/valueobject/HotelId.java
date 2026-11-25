@@ -1,46 +1,37 @@
 package com.hotelsearch.domain.valueobject;
 
-import java.util.Objects;
-import java.util.UUID;
-import java.util.regex.Pattern;
-
 /**
- * Identificador de hotel. Debe ser un UUID válido, canónico, de 36
- * caracteres. No se permiten espacios ni normalización mediante trim
- * silencioso. Inmutable.
+ * Identificador de hotel definido por el proveedor, por ejemplo
+ * {@code 1234aBc}. Es texto libre de 1 a {@value #MAX_LENGTH} caracteres
+ * sin espacios en blanco en ninguna posición.
+ *
+ * <p>El valor se guarda tal como llega: no se aplica trim ni se cambian
+ * mayúsculas, así que {@code 1234aBc} y {@code 1234abc} son hoteles
+ * distintos. La validación vive en el constructor canónico para que
+ * también la respete la deserialización del evento Kafka.</p>
  */
-public record HotelId(UUID value) {
+public record HotelId(String value) {
 
-    private static final Pattern CANONICAL_UUID_PATTERN = Pattern.compile(
-        "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-    );
+    public static final int MAX_LENGTH = 64;
 
     public HotelId {
-        Objects.requireNonNull(value, "hotelId no puede ser nulo");
+        if (value == null || value.isEmpty()) {
+            throw new IllegalArgumentException("hotelId no puede ser nulo o vacío");
+        }
+        if (value.length() > MAX_LENGTH) {
+            throw new IllegalArgumentException("hotelId no puede superar " + MAX_LENGTH + " caracteres");
+        }
+        if (value.chars().anyMatch(Character::isWhitespace)) {
+            throw new IllegalArgumentException("hotelId no permite espacios en blanco");
+        }
     }
 
     public static HotelId of(String value) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("hotelId no puede ser nulo o vacío");
-        }
-        if (value.contains(" ")) {
-            throw new IllegalArgumentException("hotelId no permite espacios: " + value);
-        }
-        if (value.length() != 36) {
-            throw new IllegalArgumentException("hotelId debe tener 36 caracteres: " + value);
-        }
-        if (!CANONICAL_UUID_PATTERN.matcher(value).matches()) {
-            throw new IllegalArgumentException("hotelId debe ser un UUID canónico (minúsculas): " + value);
-        }
-        return new HotelId(UUID.fromString(value));
-    }
-
-    public static HotelId of(UUID value) {
         return new HotelId(value);
     }
 
     @Override
     public String toString() {
-        return value.toString();
+        return value;
     }
 }
