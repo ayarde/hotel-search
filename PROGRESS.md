@@ -7,8 +7,9 @@ validación y lo que queda pendiente.
 
 ## Estado general
 
-Fases 0, 1, 2, 3, 4, 5, 6, 7, 8 y 9 implementadas y validadas. No quedan
-incrementos funcionales pendientes del plan.
+Fases 0 a 9 implementadas y validadas. Después de la revisión externa se
+abrió `CORRECTIONS-PLAN.md` (Fases 10 a 15); la Fase 10 está implementada y
+las Fases 11 a 15 están pendientes.
 
 El flujo completo que ya funciona es: POST REST → publicación de un evento
 en `hotel_availability_searches` → consumer Kafka → validación estructural →
@@ -173,6 +174,26 @@ la búsqueda y su cantidad de equivalentes.
   `searchCount = 2` al consultar una de tres búsquedas equivalentes.
 - `.env` continúa ignorado, `.env.example` solo contiene valores de ejemplo
   y el README no incorpora secretos.
+
+### Fase 10 — Contrato de `hotelId` como texto
+
+- Rama: `fix/fase-10-hotel-id-texto`. Commits: `125a003` (dominio y
+  adaptadores) y `3a11b2d` (migración e integration tests); la
+  documentación va en el commit que cierra la fase.
+- `HotelId` pasa a texto de 1 a 64 caracteres, sin espacios en blanco, sin
+  trim ni cambio de mayúsculas. La validación está en el constructor
+  canónico, así que también aplica al deserializar el evento Kafka.
+- El DTO HTTP valida longitud y espacios con Bean Validation y OpenAPI
+  muestra el ejemplo `1234aBc`. Un `hotelId` con formato UUID sigue siendo
+  válido.
+- `V2__hotel_id_free_text.sql` amplía `hotel_id` a `VARCHAR2(64 CHAR)` sin
+  editar `V1`.
+- Validación: `./gradlew build -PintegrationTest=true` en verde con 115
+  unit tests y 23 integration tests, sin fallos ni tests omitidos.
+- `docker compose up --build` sobre un volumen nuevo: Flyway aplicó 2
+  migraciones. Tres POST con `hotelId` `1234aBc` respondieron 202 y el
+  count devolvió `1234aBc` sin cambios con `searchCount: 2`. Un `hotelId`
+  con espacio y uno de 65 caracteres respondieron 400 con su mensaje.
 
 ## Validaciones actuales
 

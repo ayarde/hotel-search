@@ -144,7 +144,7 @@ curl -i http://localhost:8080/search \
   --header 'Content-Type: application/json' \
   --data-binary @- <<JSON
 {
-  "hotelId": "550e8400-e29b-41d4-a716-446655440000",
+  "hotelId": "1234aBc",
   "checkIn": "$CHECK_IN",
   "checkOut": "$CHECK_OUT",
   "ages": [29, 28, 4, 3]
@@ -181,7 +181,7 @@ Después de que el consumer complete la persistencia, la respuesta es:
 ```json
 {
   "searchId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "hotelId": "550e8400-e29b-41d4-a716-446655440000",
+  "hotelId": "1234aBc",
   "checkIn": "12/11/2026",
   "checkOut": "19/11/2026",
   "ages": [29, 28, 4, 3],
@@ -208,7 +208,7 @@ CHECK_IN=$(date +%d/%m/%Y)
 CHECK_OUT=31/12/2099
 PAYLOAD=$(cat <<JSON
 {
-  "hotelId": "550e8400-e29b-41d4-a716-446655440000",
+  "hotelId": "1234aBc",
   "checkIn": "$CHECK_IN",
   "checkOut": "$CHECK_OUT",
   "ages": [29, 28, 4, 3]
@@ -251,7 +251,7 @@ La respuesta contiene:
 ```json
 {
   "searchId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "hotelId": "550e8400-e29b-41d4-a716-446655440000",
+  "hotelId": "1234aBc",
   "checkIn": "12/11/2026",
   "checkOut": "19/11/2026",
   "ages": [29, 28, 4, 3],
@@ -273,7 +273,9 @@ volumen limpio.
 
 ### Validación y errores
 
-- `hotelId` debe ser un UUID canónico válido.
+- `hotelId` es texto de 1 a 64 caracteres, por ejemplo `1234aBc`, sin
+  espacios en blanco. Se guarda tal como llega y la comparación distingue
+  mayúsculas: `1234aBc` y `1234abc` son hoteles distintos.
 - `checkIn` y `checkOut` deben usar `dd/MM/yyyy`.
 - `ages` debe contener entre 1 y 50 enteros no negativos.
 - El body HTTP no puede superar 16 KB.
