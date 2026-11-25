@@ -23,11 +23,24 @@ public final class SubmitHotelSearch {
     private final HotelSearchPublisher publisher;
     private final Clock clock;
 
+    /**
+     * @param publisher puerto de publicación del evento
+     * @param clock reloj que define el día actual para la ventana de check-in
+     */
     public SubmitHotelSearch(HotelSearchPublisher publisher, Clock clock) {
         this.publisher = Objects.requireNonNull(publisher, "publisher no puede ser nulo");
         this.clock = Objects.requireNonNull(clock, "clock no puede ser nulo");
     }
 
+    /**
+     * Valida la búsqueda, le asigna un searchId nuevo y publica el evento.
+     * Retorna recién cuando el publisher confirma el envío.
+     *
+     * @param command datos de la búsqueda recibidos por HTTP
+     * @return el searchId generado y la búsqueda publicada
+     * @throws IllegalArgumentException si algún dato no cumple las reglas
+     *         del dominio o la ventana de fechas
+     */
     public Result execute(Command command) {
         Objects.requireNonNull(command, "command no puede ser nulo");
 

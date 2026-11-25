@@ -16,6 +16,7 @@
 - Spring JDBC para persistencia.
 - Spring Kafka para mensajería.
 - JUnit 5, Mockito, JaCoCo y Testcontainers.
+- PMD para análisis estático.
 - Flyway para migraciones de Oracle.
 - Docker y Docker Compose para ejecución local.
 - Sin internacionalización de mensajes.
@@ -307,6 +308,11 @@ retorna. Spring Kafka puede entonces confirmar el offset correspondiente.
   configuración pura (declaraciones de beans sin lógica) y la clase de
   arranque, listadas una por una en `build.gradle.kts`. Un segundo reporte
   sin exclusiones queda como referencia y no bloquea el build.
+- PMD (plugin `pmd` de Gradle, versión fijada en el catálogo) sobre el
+  código de producción, con `config/pmd/ruleset.xml` y `maxFailures = 10`.
+  Corre en `check`. No se desactivan categorías enteras: solo reglas
+  puntuales con su motivo escrito en el ruleset o en un comentario junto
+  al `@SuppressWarnings`.
 
 ## 12. Docker y Docker Compose
 

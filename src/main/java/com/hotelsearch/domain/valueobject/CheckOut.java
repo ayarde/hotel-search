@@ -1,7 +1,6 @@
 package com.hotelsearch.domain.valueobject;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 /**
  * Fecha de check-out. Inmutable.
@@ -14,6 +13,10 @@ public record CheckOut(LocalDate value) {
         }
     }
 
+    /**
+     * @param value fecha, no nula
+     * @return la fecha validada
+     */
     public static CheckOut of(LocalDate value) {
         return new CheckOut(value);
     }

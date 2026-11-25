@@ -54,6 +54,9 @@ public class JdbcHotelSearchRepository implements HotelSearchRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
+    /**
+     * @param jdbcTemplate acceso JDBC a Oracle
+     */
     public JdbcHotelSearchRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }

@@ -1,10 +1,15 @@
 package com.hotelsearch.application;
 
+import java.io.Serial;
+
 /**
  * Error de aplicación que representa la indisponibilidad de Kafka durante
  * la publicación de una búsqueda.
  */
 public final class HotelSearchUnavailableException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /**
      * Crea el error con un mensaje descriptivo.

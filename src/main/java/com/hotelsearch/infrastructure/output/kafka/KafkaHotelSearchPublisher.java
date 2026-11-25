@@ -26,11 +26,15 @@ import org.springframework.kafka.support.SendResult;
  */
 public class KafkaHotelSearchPublisher implements HotelSearchPublisher {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaHotelSearchPublisher.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaHotelSearchPublisher.class);
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final String topic;
 
+    /**
+     * @param kafkaTemplate template que envía los eventos
+     * @param topic topic de búsquedas
+     */
     public KafkaHotelSearchPublisher(
         KafkaTemplate<String, Object> kafkaTemplate,
         @org.springframework.beans.factory.annotation.Value("${app.kafka.topics.hotel-availability-searches}")
@@ -53,27 +57,51 @@ public class KafkaHotelSearchPublisher implements HotelSearchPublisher {
 
             try {
                 SendResult<String, Object> result = kafkaTemplate.send(record).get();
-                log.debug("Evento publicado: topic={}, partition={}, offset={}, key={}",
-                    result.getRecordMetadata().topic(),
-                    result.getRecordMetadata().partition(),
-                    result.getRecordMetadata().offset(),
-                    event.searchId());
+                logPublished(result, searchId);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.error("Publicación interrumpida para searchId={}", event.searchId(), e);
+                restoreInterruptFlag();
+                LOG.error("Publicación interrumpida para searchId={}", searchId, e);
                 throw new HotelSearchUnavailableException("Publicación interrumpida", e);
             } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                log.error("Fallo publicando evento searchId={}: {}", event.searchId(),
-                    cause != null ? cause.getMessage() : e.getMessage(), e);
-                if (cause instanceof TimeoutException) {
-                    throw new HotelSearchUnavailableException("Timeout publicando en Kafka", e);
-                }
-                throw new HotelSearchUnavailableException("Error publicando en Kafka", e);
+                throw publicationFailure(e, searchId);
             } catch (KafkaException e) {
-                log.error("Kafka no está disponible para searchId={}", event.searchId(), e);
+                LOG.error("Kafka no está disponible para searchId={}", searchId, e);
                 throw new HotelSearchUnavailableException("Kafka no está disponible", e);
             }
         }
+    }
+
+    private static void logPublished(SendResult<String, Object> result, String searchId) {
+        if (LOG.isDebugEnabled()) {
+            var metadata = result.getRecordMetadata();
+            LOG.debug("Evento publicado: topic={}, partition={}, offset={}, key={}",
+                metadata.topic(), metadata.partition(), metadata.offset(), searchId);
+        }
+    }
+
+    // Restablecer el flag es la forma correcta de no perder la interrupción;
+    // no crea ni gestiona hilos.
+    @SuppressWarnings("PMD.DoNotUseThreads")
+    private static void restoreInterruptFlag() {
+        Thread.currentThread().interrupt();
+    }
+
+    /**
+     * Traduce el fallo asíncrono del envío. El log es el mismo para todos
+     * los fallos; lo que distingue un timeout del broker de cualquier otro
+     * error es el mensaje de la excepción devuelta. Ambos casos terminan en
+     * 503.
+     */
+    private static HotelSearchUnavailableException publicationFailure(
+        ExecutionException exception,
+        String searchId
+    ) {
+        Throwable cause = exception.getCause();
+        String reason = cause == null ? exception.getMessage() : cause.getMessage();
+        LOG.error("Fallo publicando evento searchId={}: {}", searchId, reason, exception);
+        if (cause instanceof TimeoutException) {
+            return new HotelSearchUnavailableException("Timeout publicando en Kafka", exception);
+        }
+        return new HotelSearchUnavailableException("Error publicando en Kafka", exception);
     }
 }

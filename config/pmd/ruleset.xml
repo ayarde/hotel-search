@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="hotel-search"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Reglas PMD de Hotel Search. Se incluyen las ocho categorías de Java
+        completas. Solo se excluyen reglas puntuales, cada una con su motivo,
+        y algunas se ajustan por propiedades en lugar de desactivarse.
+    </description>
+
+    <rule ref="category/java/bestpractices.xml"/>
+
+    <rule ref="category/java/codestyle.xml">
+        <!-- El proyecto no marca parámetros ni variables locales como final.
+             El compilador ya exige que sean efectivamente finales donde importa
+             (lambdas y clases anónimas) y la marca solo agrega ruido. -->
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <!-- Las variables se declaran cerca de su primer uso, que acota su
+             alcance y facilita la lectura (Effective Java, ítem 57). -->
+        <exclude name="LocalVariableDeclarationShouldBeAtStartOfBlock"/>
+        <!-- Se usa var cuando el tipo es evidente en el lado derecho de la
+             asignación. -->
+        <exclude name="UseExplicitTypes"/>
+        <!-- Las clases de configuración y los mappers sin estado no necesitan
+             declarar un constructor vacío. -->
+        <exclude name="AtLeastOneConstructor"/>
+        <!-- Los nombres largos y descriptivos (persistHotelSearch,
+             observationRegistry) se prefieren a abreviaturas. -->
+        <exclude name="LongVariable"/>
+        <!-- of es el nombre idiomático de las factories estáticas de los value
+             objects, igual que List.of o Optional.of. -->
+        <exclude name="ShortMethodName"/>
+        <!-- Las cláusulas de guarda con return temprano evitan anidamiento. -->
+        <exclude name="OnlyOneReturn"/>
+        <!-- La llamada implícita a super() es parte del lenguaje; escribirla no
+             cambia nada. -->
+        <exclude name="CallSuperInConstructor"/>
+    </rule>
+
+    <rule ref="category/java/design.xml">
+        <!-- Marca el uso normal de APIs de terceros (KafkaProperties,
+             SendResult, HttpServletRequest) y no detecta acoplamiento real. -->
+        <exclude name="LawOfDemeter"/>
+    </rule>
+
+    <!-- CommentRequired y CommentSize se configuran abajo. -->
+    <rule ref="category/java/documentation.xml">
+        <exclude name="CommentRequired"/>
+        <exclude name="CommentSize"/>
+    </rule>
+
+    <!-- Los campos privados se entienden por su tipo y su nombre; documentarlos
+         uno por uno repetiría la información. Clases y miembros públicos
+         siguen requiriendo comentario. -->
+    <rule ref="category/java/documentation.xml/CommentRequired">
+        <properties>
+            <property name="fieldCommentRequirement" value="Ignored"/>
+        </properties>
+    </rule>
+
+    <!-- Los Javadocs explican decisiones (transacciones, at-least-once,
+         clasificación de errores) y necesitan más de seis líneas. Se mantiene
+         un límite para frenar comentarios desmedidos. -->
+    <rule ref="category/java/documentation.xml/CommentSize">
+        <properties>
+            <property name="maxLines" value="20"/>
+            <property name="maxLineLength" value="100"/>
+        </properties>
+    </rule>
+
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="EmptyCatchBlock"/>
+    </rule>
+
+    <!-- Un catch vacío solo se acepta si un comentario explica por qué se
+         descarta la excepción, como el duplicado por PK en el repositorio. -->
+    <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+        <properties>
+            <property name="allowCommentedBlocks" value="true"/>
+        </properties>
+    </rule>
+    <rule ref="category/java/multithreading.xml"/>
+    <rule ref="category/java/performance.xml"/>
+    <rule ref="category/java/security.xml"/>
+</ruleset>

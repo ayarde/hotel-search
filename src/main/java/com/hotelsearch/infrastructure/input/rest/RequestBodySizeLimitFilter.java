@@ -78,7 +78,7 @@ public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
             if (result == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new ServletException("No se pudo generar la respuesta para un body demasiado grande", e);
         }
     }

@@ -16,10 +16,19 @@ public class PersistHotelSearch {
 
     private final HotelSearchRepository repository;
 
+    /**
+     * @param repository puerto de escritura de búsquedas
+     */
     public PersistHotelSearch(HotelSearchRepository repository) {
         this.repository = Objects.requireNonNull(repository, "repository no puede ser nulo");
     }
 
+    /**
+     * Guarda la búsqueda. Un duplicado por redelivery no es un error: el
+     * repositorio lo descarta.
+     *
+     * @param search búsqueda recibida desde Kafka
+     */
     public void execute(HotelSearch search) {
         Objects.requireNonNull(search, "search no puede ser nulo");
         repository.save(search);

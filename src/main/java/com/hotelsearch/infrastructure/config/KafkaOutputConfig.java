@@ -20,6 +20,10 @@ public class KafkaOutputConfig {
     @Value("${app.kafka.topics.hotel-availability-searches}")
     private String searchesTopic;
 
+    /**
+     * @param kafkaTemplate template configurado en KafkaProducerConfig
+     * @return adaptador del puerto de publicación
+     */
     @Bean
     public HotelSearchPublisher hotelSearchPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
         return new KafkaHotelSearchPublisher(kafkaTemplate, searchesTopic);

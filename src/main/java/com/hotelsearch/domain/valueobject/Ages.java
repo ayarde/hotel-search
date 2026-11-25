@@ -32,6 +32,10 @@ public record Ages(List<Integer> values) {
         values = List.copyOf(values);
     }
 
+    /**
+     * @param values edades en el orden recibido; se copia la lista
+     * @return las edades validadas
+     */
     public static Ages of(List<Integer> values) {
         return new Ages(values);
     }

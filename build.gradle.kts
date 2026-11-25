@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.spring.dependency.management)
     id("java")
     id("jacoco")
+    id("pmd")
 }
 
 group = "com.hotelsearch"
@@ -16,6 +17,20 @@ java {
 jacoco {
     toolVersion = "0.8.14"
     reportsDirectory = layout.buildDirectory.dir("reports/jacoco")
+}
+
+// Análisis estático sobre el código de producción; `check` depende de
+// `pmdMain`. El build falla si PMD informa más de 10 hallazgos: ese es el
+// máximo que fija CORRECTIONS-PLAN.md, no un objetivo. Hoy hay 0 hallazgos,
+// y el reporte (build/reports/pmd/main.html) lista cualquier hallazgo nuevo
+// aunque el build siga pasando, así que conviene revisarlo.
+pmd {
+    toolVersion = libs.versions.pmd.get()
+    sourceSets = listOf(project.sourceSets.main.get())
+    ruleSetFiles = files("config/pmd/ruleset.xml")
+    ruleSets = emptyList()
+    maxFailures = 10
+    isConsoleOutput = true
 }
 
 // Exclusiones de cobertura: solo clases de configuración pura, es decir,

@@ -15,6 +15,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @Configuration
 public class DataSourceConfig {
 
+    /**
+     * @param dataSource pool de conexiones configurado por Spring Boot
+     * @return JdbcTemplate compartido por los adaptadores de persistencia
+     */
     @Bean
     public JdbcTemplate jdbcTemplate(DataSource dataSource) {
         return new JdbcTemplate(dataSource);

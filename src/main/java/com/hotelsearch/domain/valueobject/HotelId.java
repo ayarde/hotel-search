@@ -35,6 +35,10 @@ public record HotelId(String value) {
         return Character.isWhitespace(character) || Character.isSpaceChar(character);
     }
 
+    /**
+     * @param value identificador tal como llega, sin normalizar
+     * @return el identificador validado
+     */
     public static HotelId of(String value) {
         return new HotelId(value);
     }

@@ -69,18 +69,19 @@ public class HotelSearchRestMapper {
 
     private LocalDate parseDate(String value, String field) {
         if (!DATE_PATTERN.matcher(value).matches()) {
-            throw invalidDate(field, value);
+            throw invalidDate(field, value, null);
         }
         try {
             return LocalDate.parse(value, DATE_FORMATTER);
         } catch (DateTimeParseException e) {
-            throw invalidDate(field, value);
+            throw invalidDate(field, value, e);
         }
     }
 
-    private IllegalArgumentException invalidDate(String field, String value) {
+    private IllegalArgumentException invalidDate(String field, String value, Throwable cause) {
         return new IllegalArgumentException(
-            field + " debe usar el formato dd/MM/yyyy y representar una fecha válida: " + value);
+            field + " debe usar el formato dd/MM/yyyy y representar una fecha válida: " + value,
+            cause);
     }
 
     private String formatDate(LocalDate value) {

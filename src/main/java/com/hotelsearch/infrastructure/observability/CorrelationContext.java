@@ -7,6 +7,9 @@ package com.hotelsearch.infrastructure.observability;
  * header de {@code searchId}. De esta forma, los logs conservados por un
  * consumidor pueden correlacionarse directamente con el evento recibido.</p>
  */
+// Contenedor de constantes sin estado ni comportamiento; no es una clase de
+// datos en el sentido de DataClass.
+@SuppressWarnings("PMD.DataClass")
 public final class CorrelationContext {
 
     /** Identificador de la búsqueda. */

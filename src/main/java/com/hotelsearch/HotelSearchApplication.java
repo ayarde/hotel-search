@@ -15,6 +15,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class HotelSearchApplication {
 
+    /**
+     * Arranca la aplicación Spring Boot.
+     *
+     * @param args argumentos de línea de comandos
+     */
     public static void main(String[] args) {
         SpringApplication.run(HotelSearchApplication.class, args);
     }

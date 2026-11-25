@@ -1,6 +1,7 @@
 package com.hotelsearch.infrastructure.input.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +15,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 /**
@@ -58,6 +60,39 @@ class RestExceptionHandlerTest {
         assertThat(errors.get("hotelId")).isEqualTo(List.of("hotelId inválido"));
         assertThat(errors.get("checkOut")).isEqualTo(List.of("valor inválido"));
         assertThat(errors.get("_global")).isEqualTo(List.of("Error global"));
+    }
+
+    /**
+     * Verifica que un error de campo sin mensaje por defecto se informe con
+     * el texto genérico en lugar de un valor nulo.
+     *
+     * Condiciones:
+     * - Un único FieldError cuyo mensaje por defecto es null
+     *
+     * Se espera:
+     * - Status 400
+     * - errors.checkOut igual a ["valor inválido"]
+     */
+    @Test
+    void handleMethodArgumentNotValid_FieldErrorWithoutMessage_ReturnsGenericMessage() {
+        // given
+        HotelSearchRequest target = new HotelSearchRequest(
+            "550e8400-e29b-41d4-a716-446655440000", "09/11/2026", "29/11/2026", List.of(29));
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(target, "request");
+        bindingResult.addError(new FieldError("request", "checkOut", null));
+        MethodArgumentNotValidException exception = new MethodArgumentNotValidException(
+            mock(MethodParameter.class), bindingResult);
+        HttpServletRequest request = request("/search");
+
+        // when
+        var response = handler.handleMethodArgumentNotValid(exception, request);
+
+        // then
+        Map<String, List<String>> errors = (Map<String, List<String>>) response.getBody().getProperties().get("errors");
+        assertAll(
+            () -> assertThat(response.getStatusCode().value()).isEqualTo(400),
+            () -> assertThat(errors.keySet()).containsExactly("checkOut"),
+            () -> assertThat(errors.get("checkOut")).containsExactly("valor inválido"));
     }
 
     /**

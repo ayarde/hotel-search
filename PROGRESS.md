@@ -3,13 +3,13 @@
 Estado del proyecto por fases, con el alcance ya implementado, su
 validación y lo que queda pendiente.
 
-Última actualización: 2026-11-25 · Rama `refactor/fase-11-aplicacion-sin-spring` · Fases 0–11 implementadas
+Última actualización: 2026-11-25 · Rama `refactor/fase-13-analisis-estatico` · Fases 0–13 implementadas
 
 ## Estado general
 
 Fases 0 a 9 implementadas y validadas. Después de la revisión externa se
-abrió `CORRECTIONS-PLAN.md` (Fases 10 a 15); las Fases 10 y 11 están
-implementadas y las Fases 12 a 15 están pendientes.
+abrió `CORRECTIONS-PLAN.md` (Fases 10 a 15); las Fases 10 a 13 están
+implementadas y las Fases 14 y 15 están pendientes.
 
 El flujo completo que ya funciona es: POST REST → publicación de un evento
 en `hotel_availability_searches` → consumer Kafka → validación estructural →
@@ -268,6 +268,71 @@ la búsqueda y su cantidad de equivalentes.
   los tests usan imports en lugar de nombres calificados y `assertThrows`
   de forma uniforme, y el test del listener compara la búsqueda completa.
 
+### Fase 13 — Análisis estático y code smells
+
+- Rama: `refactor/fase-13-analisis-estatico`.
+- Plugin `pmd` de Gradle con PMD 7.29.0, fijado en
+  `gradle/libs.versions.toml`, y ruleset propio en `config/pmd/ruleset.xml`.
+  Analiza `main`, corre como parte de `check` y tiene `maxFailures = 10`.
+- El ruleset incluye las ocho categorías de reglas Java completas. Se
+  excluyen diez reglas puntuales, cada una con su motivo:
+  `MethodArgumentCouldBeFinal`, `LocalVariableCouldBeFinal`,
+  `LocalVariableDeclarationShouldBeAtStartOfBlock`, `UseExplicitTypes`,
+  `AtLeastOneConstructor`, `LongVariable`, `ShortMethodName`,
+  `OnlyOneReturn`, `CallSuperInConstructor` y `LawOfDemeter`. Hay tres
+  reglas ajustadas por propiedades: `CommentRequired` no exige comentarios
+  en campos, `CommentSize` admite hasta 20 líneas de 100 caracteres y
+  `EmptyCatchBlock` acepta un catch vacío si tiene un comentario.
+- Hallazgos antes: 396 con todas las reglas de las ocho categorías, sin
+  exclusiones, y 53 con el ruleset final (21 de documentación, 12 de error
+  prone, 6 de best practices, 6 de code style, 3 de multithreading, 3 de
+  design y 2 de performance). Después: 0.
+- Correcciones: `serialVersionUID` en las cuatro excepciones, imports sin
+  uso, nombres calificados innecesarios, campos de `KafkaProducerConfig` que
+  coincidían con métodos `@Bean`, la causa conservada en el error de fecha
+  del mapper REST, una constante para la versión de UUID y otra para el
+  título "Solicitud inválida", y la agrupación de errores de validación
+  con streams en lugar de loops. `KafkaHotelSearchPublisher` baja su
+  complejidad ciclomática separando la traducción de fallos y protege el
+  log DEBUG con `isDebugEnabled`. Además, `Javadoc` en los constructores y
+  métodos públicos que no lo tenían.
+- `RequestBodySizeLimitFilter` captura `IOException` en lugar de
+  `Exception`. Es el único checked que puede lanzar `sendError`; si el
+  resolver de Spring lanzara una excepción runtime, ahora se propaga tal
+  cual en vez de llegar envuelta en `ServletException`. En los dos casos el
+  contenedor responde 500.
+- Siete `@SuppressWarnings("PMD...")`, cada uno con un comentario:
+  `TooManyMethods` en `RestExceptionHandler`, `DataClass` en
+  `CorrelationContext`, `ImplicitFunctionalInterface` en
+  `HotelSearchPublisher`, `UseConcurrentHashMap` en un mapa local de
+  `RequestCorrelationFilter`, `CloseResource` en el serializador que cierra
+  el producer factory, `DoNotUseThreads` al restablecer el flag de
+  interrupción y `AvoidCatchingGenericException` en
+  `HotelSearchEventMapper`, que traduce los nulos de
+  `Objects.requireNonNull`.
+- Nuevo test `publish_DebugEnabled_LogsBrokerMetadata`: fija el log DEBUG
+  con la metadata del broker y cubre la guarda.
+- Correcciones de la revisión nativa (review-9abfca2dcf38b252, aprobada;
+  se atendieron los hallazgos no bloqueantes): comentario ampliado de
+  `maxFailures = 10` (máximo de CORRECTIONS-PLAN.md, hoy 0 hallazgos),
+  Javadoc corregido de `publicationFailure` (el log es el mismo; la
+  distinción timeout/otros está en el mensaje de la excepción) y cuatro
+  tests nuevos: `sendError` con `IOException`, `RuntimeException` del
+  resolver propagada tal cual, logger en INFO sin lectura de metadata y
+  `FieldError` sin mensaje. Este último fija que `messageOf` devuelve
+  "valor inválido", así que el `Map.entry` nunca recibe un valor nulo.
+  Validación final: `./gradlew build -PintegrationTest=true` en verde con
+  148 unit tests y 24 integration tests, PMD con 0 hallazgos y JaCoCo con
+  exclusiones reducidas en `LINE` 95,5 % (421/441) y `BRANCH` 91,7 % (88/96).
+- Validación: `./gradlew pmdMain` informa 0 hallazgos
+  (`build/reports/pmd/main.html`). Al quitar temporalmente una exclusión,
+  PMD encuentra 15 hallazgos y el build falla con "15 PMD rule violations
+  were found". `./gradlew clean build -PintegrationTest=true` en verde con
+  143 unit tests y 24 integration tests, y `pmdMain` dentro de `check`.
+  Con el test nuevo, `./gradlew build` pasa con 144 unit tests. JaCoCo con
+  exclusiones reducidas: `LINE` 95,0 % (419/441) y `BRANCH` 91,7 % (88/96).
+  Sin exclusiones: `LINE` 91,3 % (420/460) y `BRANCH` 91,7 % (88/96).
+
 ## Validaciones actuales
 
 Comandos ejecutados después de implementar la Fase 9, tanto en el working
@@ -340,6 +405,8 @@ docker compose ps
   adicionales y 1 segundo de intervalo.
 - JaCoCo verifica `LINE` y `BRANCH` con mínimo 80 %; las demás métricas se
   miden en el informe, pero no bloquean el build.
+- PMD corre en `check` sobre el código de producción y el build falla con
+  más de 10 hallazgos.
 - Sin idempotencia HTTP, sin Outbox, sin XA y sin consumidor automático del
   DLT.
 - Micrometer Tracing se usa solo para logs y correlación; no hay exportador

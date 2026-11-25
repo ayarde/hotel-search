@@ -25,6 +25,13 @@ public record SearchId(UUID value) {
         return new SearchId(UUID.randomUUID());
     }
 
+    /**
+     * Convierte el texto recibido por HTTP o leído de Oracle.
+     *
+     * @param value UUID en formato canónico con guiones
+     * @return el searchId validado
+     * @throws IllegalArgumentException si el texto es vacío o no es un UUID
+     */
     public static SearchId of(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("searchId no puede ser nulo o vacío");
@@ -35,6 +42,10 @@ public record SearchId(UUID value) {
         return new SearchId(UUID.fromString(value));
     }
 
+    /**
+     * @param value UUID ya construido, no nulo
+     * @return el searchId correspondiente
+     */
     public static SearchId of(UUID value) {
         return new SearchId(value);
     }

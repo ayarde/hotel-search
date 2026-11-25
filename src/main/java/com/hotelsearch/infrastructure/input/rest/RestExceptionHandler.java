@@ -5,10 +5,11 @@ import com.hotelsearch.application.SearchNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -30,7 +31,14 @@ import tools.jackson.databind.exc.UnrecognizedPropertyException;
  */
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
+// Un método por tipo de excepción es la forma que define Spring MVC para
+// @ExceptionHandler. Dividir la clase repartiría el contrato de errores HTTP.
+@SuppressWarnings("PMD.TooManyMethods")
 public class RestExceptionHandler {
+
+    private static final String INVALID_REQUEST_TITLE = "Solicitud inválida";
+
+    private static final String GLOBAL_ERRORS_KEY = "_global";
 
     /**
      * Representa un request inválido validado por Bean Validation.
@@ -44,20 +52,23 @@ public class RestExceptionHandler {
         MethodArgumentNotValidException exception,
         HttpServletRequest request
     ) {
-        Map<String, List<String>> errors = new LinkedHashMap<>();
-        for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
-            errors.computeIfAbsent(fieldError.getField(), key -> new ArrayList<>())
-                .add(messageOf(fieldError));
-        }
-        for (ObjectError globalError : exception.getBindingResult().getGlobalErrors()) {
-            errors.computeIfAbsent("_global", key -> new ArrayList<>())
-                .add(messageOf(globalError));
-        }
+        BindingResult bindingResult = exception.getBindingResult();
+        // Primero los errores por campo y después los globales, en el orden
+        // en que los informa Bean Validation.
+        Map<String, List<String>> errors = Stream.concat(
+                bindingResult.getFieldErrors().stream()
+                    .map(error -> Map.entry(error.getField(), messageOf(error))),
+                bindingResult.getGlobalErrors().stream()
+                    .map(error -> Map.entry(GLOBAL_ERRORS_KEY, messageOf(error))))
+            .collect(Collectors.groupingBy(
+                Map.Entry::getKey,
+                LinkedHashMap::new,
+                Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
 
         ProblemDetail problem = problem(
             HttpStatus.BAD_REQUEST,
             "urn:hotel-search:problem:invalid-request",
-            "Solicitud inválida",
+            INVALID_REQUEST_TITLE,
             "El request contiene valores que no cumplen el contrato.",
             request);
         problem.setProperty("errors", errors);
@@ -85,7 +96,7 @@ public class RestExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, problem(
             HttpStatus.BAD_REQUEST,
             "urn:hotel-search:problem:invalid-json",
-            "Solicitud inválida",
+            INVALID_REQUEST_TITLE,
             detail,
             request));
     }
@@ -105,7 +116,7 @@ public class RestExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, problem(
             HttpStatus.BAD_REQUEST,
             "urn:hotel-search:problem:missing-parameter",
-            "Solicitud inválida",
+            INVALID_REQUEST_TITLE,
             "El parámetro '" + exception.getParameterName() + "' es obligatorio",
             request));
     }
@@ -131,7 +142,7 @@ public class RestExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, problem(
             HttpStatus.BAD_REQUEST,
             "urn:hotel-search:problem:invalid-request",
-            "Solicitud inválida",
+            INVALID_REQUEST_TITLE,
             detail,
             request));
     }
@@ -151,7 +162,7 @@ public class RestExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, problem(
             HttpStatus.BAD_REQUEST,
             "urn:hotel-search:problem:body-too-large",
-            "Solicitud inválida",
+            INVALID_REQUEST_TITLE,
             exception.getMessage(),
             request));
     }
@@ -171,7 +182,7 @@ public class RestExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, problem(
             HttpStatus.BAD_REQUEST,
             "urn:hotel-search:problem:invalid-request",
-            "Solicitud inválida",
+            INVALID_REQUEST_TITLE,
             exception.getMessage(),
             request));
     }

@@ -49,6 +49,7 @@ La entrega es **at-least-once**. El consumer confirma el offset de Kafka
 - Oracle Database Free 23.26.3.
 - Apache Kafka 4.4.0 en modo KRaft.
 - JUnit 5, Mockito, Testcontainers y JaCoCo.
+- PMD 7.29.0 para el análisis estático.
 - OpenAPI 3 y Swagger UI mediante springdoc.
 
 El proyecto no utiliza Maven ni contiene módulos Gradle adicionales.
@@ -363,7 +364,7 @@ Para cambiar los puertos publicados, modificá `APP_PORT`,
 ```
 
 Compila el proyecto, ejecuta los tests unitarios, verifica el umbral de
-JaCoCo y genera el JAR ejecutable. Los integration tests no se ejecutan en
+JaCoCo, corre PMD y genera el JAR ejecutable. Los integration tests no se ejecutan en
 este comando.
 
 Para regenerar todos los artefactos desde cero:
@@ -413,6 +414,22 @@ Reportes disponibles:
   `build/reports/jacoco/test/html/index.html`.
 - Cobertura sin ninguna exclusión, solo informativa:
   `build/reports/jacoco/unfiltered/html/index.html`.
+
+### Análisis estático
+
+```bash
+./gradlew pmdMain
+```
+
+PMD analiza el código de producción con el ruleset
+`config/pmd/ruleset.xml` y corre como parte de `check`, así que también lo
+ejecuta `./gradlew build`. El build falla si hay más de 10 hallazgos. El
+ruleset incluye las ocho categorías de reglas Java de PMD; las pocas reglas
+excluidas o ajustadas tienen el motivo escrito junto a la exclusión, y cada
+`@SuppressWarnings("PMD...")` del código lleva un comentario que lo
+justifica.
+
+Reporte: `build/reports/pmd/main.html`.
 
 ## Operación con Docker Compose
 

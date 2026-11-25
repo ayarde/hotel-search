@@ -34,6 +34,9 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
         HttpServletResponse response,
         FilterChain filterChain
     ) throws ServletException, IOException {
+        // Mapa local de un solo request: no se comparte entre hilos y
+        // LinkedHashMap conserva el orden de las entradas del MDC.
+        @SuppressWarnings("PMD.UseConcurrentHashMap")
         Map<String, String> correlation = new LinkedHashMap<>();
         correlation.put(CorrelationContext.COMPONENT, CorrelationContext.REST_COMPONENT);
         correlation.put(CorrelationContext.REQUEST_ID, UUID.randomUUID().toString());

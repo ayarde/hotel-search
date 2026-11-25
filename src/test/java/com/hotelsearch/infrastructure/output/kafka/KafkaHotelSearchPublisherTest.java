@@ -8,9 +8,14 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.hotelsearch.application.HotelSearchUnavailableException;
 import com.hotelsearch.domain.model.HotelSearchEvent;
 import com.hotelsearch.infrastructure.observability.CorrelationContext;
@@ -24,6 +29,7 @@ import org.apache.kafka.common.errors.TimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
@@ -284,6 +290,92 @@ class KafkaHotelSearchPublisherTest {
             .as("El publisher debe restablecer el flag de interrupción")
             .isTrue();
         assertThat(MDC.getCopyOfContextMap()).isNullOrEmpty();
+    }
+
+    /**
+     * Verifica que, con DEBUG habilitado, el publisher registre la metadata
+     * que devolvió el broker junto con el searchId.
+     *
+     * Condiciones:
+     * - El logger del publisher está en nivel DEBUG
+     * - El broker confirma el envío en la partición 0, offset 12
+     *
+     * Se espera:
+     * - Un único evento DEBUG con topic, partición, offset y searchId
+     */
+    @Test
+    void publish_DebugEnabled_LogsBrokerMetadata() {
+        // given
+        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        doReturn(CompletableFuture.completedFuture(acknowledgedResult()))
+            .when(template).send(any(ProducerRecord.class));
+        KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
+        HotelSearchEvent event = validEvent();
+        Logger logger = (Logger) LoggerFactory.getLogger(KafkaHotelSearchPublisher.class);
+        Level previousLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.DEBUG);
+
+        // when
+        try {
+            publisher.publish(event);
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(previousLevel);
+        }
+
+        // then
+        assertThat(appender.list)
+            .as("Debe registrarse un único evento DEBUG con la metadata del broker")
+            .singleElement()
+            .satisfies(logged -> {
+                assertThat(logged.getLevel()).isEqualTo(Level.DEBUG);
+                assertThat(logged.getFormattedMessage()).isEqualTo(
+                    "Evento publicado: topic=" + TOPIC + ", partition=0, offset=12, key="
+                        + event.searchId());
+            });
+    }
+
+    /**
+     * Verifica que con el logger en INFO el publisher no registre nada ni
+     * consulte la metadata del broker.
+     *
+     * Condiciones:
+     * - El logger del publisher está en nivel INFO
+     * - El broker confirma el envío
+     *
+     * Se espera:
+     * - Ningún evento registrado
+     * - getRecordMetadata() no se invoca sobre el SendResult
+     */
+    @Test
+    void publish_InfoLevel_DoesNotLogNorReadMetadata() throws Exception {
+        // given
+        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        SendResult<String, Object> sendResult = mock(SendResult.class);
+        doReturn(CompletableFuture.completedFuture(sendResult))
+            .when(template).send(any(ProducerRecord.class));
+        KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
+        Logger logger = (Logger) LoggerFactory.getLogger(KafkaHotelSearchPublisher.class);
+        Level previousLevel = logger.getLevel();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.INFO);
+
+        // when
+        try {
+            publisher.publish(validEvent());
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(previousLevel);
+        }
+
+        // then
+        assertThat(appender.list).as("No debe registrarse ningún evento").isEmpty();
+        verify(sendResult, never()).getRecordMetadata();
     }
 
     // <editor-fold desc="Helpers">

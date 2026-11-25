@@ -14,6 +14,8 @@ import com.hotelsearch.domain.valueobject.SearchId;
  */
 public class HotelSearchEventMapper {
 
+    private static final int UUID_V4 = 4;
+
     /**
      * Valida la estructura básica del evento y construye una búsqueda
      * inmutable con los value objects del dominio.
@@ -33,7 +35,7 @@ public class HotelSearchEventMapper {
 
         try {
             SearchId searchId = SearchId.of(event.searchId().value().toString());
-            if (searchId.value().version() != 4) {
+            if (searchId.value().version() != UUID_V4) {
                 throw new InvalidHotelSearchEventException("El searchId debe ser un UUIDv4");
             }
 
@@ -47,7 +49,12 @@ public class HotelSearchEventMapper {
 
             Ages ages = Ages.of(event.ages().values());
             return new HotelSearch(searchId, hotelId, checkIn, checkOut, ages);
-        } catch (IllegalArgumentException | NullPointerException e) {
+        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException")
+                 IllegalArgumentException | NullPointerException e) {
+            // Las invariantes del dominio rechazan nulos con
+            // Objects.requireNonNull, que lanza NullPointerException. Un
+            // componente ausente en el JSON llega como null y se clasifica
+            // igual que cualquier otro evento mal formado.
             throw new InvalidHotelSearchEventException("El evento de búsqueda tiene una estructura inválida", e);
         }
     }

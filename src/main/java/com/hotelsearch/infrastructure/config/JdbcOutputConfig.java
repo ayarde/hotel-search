@@ -18,6 +18,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @Configuration
 public class JdbcOutputConfig {
 
+    /**
+     * @param jdbcTemplate acceso JDBC a Oracle
+     * @return adaptador del puerto de persistencia
+     */
     @Bean
     public HotelSearchRepository hotelSearchRepository(JdbcTemplate jdbcTemplate) {
         return new JdbcHotelSearchRepository(jdbcTemplate);

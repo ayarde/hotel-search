@@ -1,5 +1,6 @@
 package com.hotelsearch.application;
 
+import java.io.Serial;
 import com.hotelsearch.domain.valueobject.SearchId;
 
 /**
@@ -7,6 +8,9 @@ import com.hotelsearch.domain.valueobject.SearchId;
  * Oracle o que nunca fue persistida.
  */
 public final class SearchNotFoundException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /**
      * Crea el error con el identificador consultado.

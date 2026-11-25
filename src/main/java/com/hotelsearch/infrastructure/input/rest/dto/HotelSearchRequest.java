@@ -26,14 +26,14 @@ public record HotelSearchRequest(
         max = HotelId.MAX_LENGTH,
         message = "hotelId no puede superar " + HotelId.MAX_LENGTH + " caracteres"
     )
-    @Pattern(regexp = HotelSearchRequest.HOTEL_ID_PATTERN, message = "hotelId no permite espacios en blanco")
+    @Pattern(regexp = HOTEL_ID_PATTERN, message = "hotelId no permite espacios en blanco")
     @Schema(
         description = "Identificador del hotel definido por el proveedor. Texto sin espacios "
             + "en blanco; se compara de forma exacta",
         example = "1234aBc",
         minLength = 1,
         maxLength = HotelId.MAX_LENGTH,
-        pattern = HotelSearchRequest.HOTEL_ID_PATTERN
+        pattern = HOTEL_ID_PATTERN
     )
     String hotelId,
 

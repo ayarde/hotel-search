@@ -18,10 +18,22 @@ public final class CountHotelSearch {
 
     private final HotelSearchRepository repository;
 
+    /**
+     * @param repository puerto de lectura de búsquedas
+     */
     public CountHotelSearch(HotelSearchRepository repository) {
         this.repository = Objects.requireNonNull(repository, "repository no puede ser nulo");
     }
 
+    /**
+     * Recupera la búsqueda y la cantidad de búsquedas equivalentes, sin
+     * contarse a sí misma.
+     *
+     * @param query searchId a consultar, todavía sin validar
+     * @return la búsqueda y su conteo de equivalentes
+     * @throws IllegalArgumentException si el searchId no es un UUID válido
+     * @throws SearchNotFoundException si la búsqueda no existe en Oracle
+     */
     public Result execute(Query query) {
         Objects.requireNonNull(query, "query no puede ser nulo");
 
