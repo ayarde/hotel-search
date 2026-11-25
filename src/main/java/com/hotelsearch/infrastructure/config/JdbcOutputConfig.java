@@ -11,7 +11,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
  *
  * <p>Define los beans de infraestructura para la persistencia de búsquedas
  * en Oracle. El {@link JdbcHotelSearchRepository} implementa el puerto
- * {@link HotelSearchRepository} y se configura como bean singleton.</p>
+ * {@link HotelSearchRepository} y se configura como bean singleton. Al ser
+ * un bean de Spring queda proxyado, lo que hace efectivo el
+ * {@code @Transactional} de su método {@code save}.</p>
  */
 @Configuration
 public class JdbcOutputConfig {

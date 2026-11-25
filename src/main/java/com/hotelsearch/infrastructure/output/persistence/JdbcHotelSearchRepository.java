@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Implementación JDBC del puerto de persistencia sobre Oracle.
@@ -57,7 +58,22 @@ public class JdbcHotelSearchRepository implements HotelSearchRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Inserta la búsqueda en su propia transacción Oracle.
+     *
+     * <p>La transacción se declara con {@code @Transactional} y no con un
+     * {@code TransactionTemplate} porque el bean lo crea
+     * {@code JdbcOutputConfig} y Spring lo envuelve en un proxy
+     * transaccional; {@code save} se invoca siempre desde fuera del bean,
+     * así que no hay autoinvocación que saltee el proxy. El commit termina
+     * antes de que el listener retorne y se confirme el offset.</p>
+     *
+     * <p>El duplicado por PK se descarta dentro de la transacción: Oracle
+     * revierte solo la sentencia fallida y el commit no tiene cambios.
+     * Cualquier otro error SQL se propaga y provoca rollback.</p>
+     */
     @Override
+    @Transactional
     public void save(HotelSearch search) {
         try {
             jdbcTemplate.update(INSERT_SQL,

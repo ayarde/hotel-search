@@ -24,8 +24,8 @@ POST /search
     -> KafkaHotelSearchPublisher
     -> hotel_availability_searches
     -> HotelSearchKafkaListener
-    -> PersistHotelSearch (@Transactional)
-    -> JdbcHotelSearchRepository
+    -> PersistHotelSearch
+    -> JdbcHotelSearchRepository (@Transactional)
     -> Oracle
 
 GET /count?searchId=...

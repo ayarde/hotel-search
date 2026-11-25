@@ -12,11 +12,14 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.framework.Advised;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.oracle.OracleContainer;
@@ -298,6 +301,33 @@ class JdbcHotelSearchRepositoryIT {
             () -> assertThat(found.orElseThrow().search().hotelId().value())
                 .as("El hotelId debe leerse sin cambios").isEqualTo(hotelId)
         );
+    }
+
+    /**
+     * Verifica que el bean del repositorio que publica Spring está proxyado,
+     * condición para que @Transactional en save abra y confirme la
+     * transacción Oracle.
+     *
+     * Condiciones:
+     * - Contexto Spring completo con el repositorio creado por JdbcOutputConfig
+     *
+     * Se espera:
+     * - El bean sea un proxy AOP
+     * - El proxy aplique un TransactionInterceptor
+     */
+    @Test
+    void save_SpringManagedRepository_IsTransactionalProxy() {
+        // given
+        Object bean = repository;
+
+        // when
+        boolean proxied = AopUtils.isAopProxy(bean);
+
+        // then
+        assertThat(proxied).as("El repositorio debe estar proxyado").isTrue();
+        assertThat(((Advised) bean).getAdvisors())
+            .as("El proxy debe aplicar el interceptor transaccional")
+            .anyMatch(advisor -> advisor.getAdvice() instanceof TransactionInterceptor);
     }
 
     // <editor-fold desc="Helpers">

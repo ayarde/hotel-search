@@ -3,13 +3,13 @@
 Estado del proyecto por fases, con el alcance ya implementado, su
 validación y lo que queda pendiente.
 
-Última actualización: 2026-11-12 · Rama `main` · Fases 0–9 implementadas
+Última actualización: 2026-11-25 · Rama `refactor/fase-11-aplicacion-sin-spring` · Fases 0–11 implementadas
 
 ## Estado general
 
 Fases 0 a 9 implementadas y validadas. Después de la revisión externa se
-abrió `CORRECTIONS-PLAN.md` (Fases 10 a 15); la Fase 10 está implementada y
-las Fases 11 a 15 están pendientes.
+abrió `CORRECTIONS-PLAN.md` (Fases 10 a 15); las Fases 10 y 11 están
+implementadas y las Fases 12 a 15 están pendientes.
 
 El flujo completo que ya funciona es: POST REST → publicación de un evento
 en `hotel_availability_searches` → consumer Kafka → validación estructural →
@@ -66,8 +66,8 @@ la búsqueda y su cantidad de equivalentes.
 - `HotelSearchEventMapper` valida la estructura del evento (UUIDv4, fechas y
   edades) y `InvalidHotelSearchEventException` marca los errores
   permanentes.
-- `PersistHotelSearch` es transaccional (`@Transactional`) en la capa
-  `application`; el listener no captura ni envuelve excepciones de
+- `PersistHotelSearch` era transaccional (`@Transactional`) en la capa
+  `application`; desde la Fase 11 la transacción la abre el adaptador JDBC; el listener no captura ni envuelve excepciones de
   persistencia.
 - `KafkaConsumerConfig` con `DefaultErrorHandler`, `FixedBackOff(1000 ms, 3
   reintentos)` y `DeadLetterPublishingRecoverer` hacia `hotel_search_dlt`;
@@ -198,6 +198,31 @@ la búsqueda y su cantidad de equivalentes.
   migraciones. Tres POST con `hotelId` `1234aBc` respondieron 202 y el
   count devolvió `1234aBc` sin cambios con `searchCount: 2`. Un `hotelId`
   con espacio y uno de 65 caracteres respondieron 400 con su mensaje.
+
+### Fase 11 — Capa de aplicación libre de Spring
+
+- Rama: `refactor/fase-11-aplicacion-sin-spring`.
+- `PersistHotelSearch` ya no importa Spring ni declara `@Transactional`.
+- La transacción se declara con `@Transactional` en
+  `JdbcHotelSearchRepository.save`. Se eligió la anotación y no un
+  `TransactionTemplate` porque el bean lo crea `JdbcOutputConfig` y Spring
+  lo proxya; `save` nunca se autoinvoca. El duplicado por PK se sigue
+  descartando dentro de la transacción y cualquier otro error SQL se
+  propaga y provoca rollback.
+- Se actualizaron los Javadocs de `AppConfig.persistHotelSearch` y
+  `JdbcOutputConfig`, `TECHNICAL-DECISIONS.md` §6 y §8 y el diagrama de
+  flujo del `README.md`.
+- Regla verificable: `LayerDependencyRulesTest` recorre las fuentes de
+  `application` y `domain` y falla si alguna referencia
+  `org.springframework`. No suma dependencias.
+- `JdbcHotelSearchRepositoryTest` verifica que `save` está anotado y
+  `JdbcHotelSearchRepositoryIT` verifica que el bean real es un proxy AOP con
+  `TransactionInterceptor`.
+- Validación: `grep -rn "org.springframework"` sobre `application` y
+  `domain` sin resultados. `./gradlew build -PintegrationTest=true` en verde
+  con 124 unit tests y 24 integration tests (incluido
+  `HotelSearchKafkaConsumerIT`: duplicado, commit de offset y DLT), sin
+  fallos ni tests omitidos. JaCoCo: `LINE` 93,5 % y `BRANCH` 91,3 %.
 
 ## Validaciones actuales
 

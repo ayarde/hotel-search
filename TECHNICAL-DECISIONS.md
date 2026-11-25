@@ -142,7 +142,9 @@ entre ACK de Kafka y persistencia del consumer.
 - Listener Kafka procesa el evento y retorna normalmente solo después
   de confirmar la transacción Oracle.
 - `AckMode.RECORD`; ACK administrado por Spring Kafka.
-- `@Transactional` en el servicio de aplicación que persiste.
+- `@Transactional` en el adaptador JDBC que persiste
+  (`JdbcHotelSearchRepository.save`); la capa de aplicación no depende
+  de Spring.
 - Commit Oracle antes de confirmar offset Kafka.
 - Entrega at-least-once; no exactly-once.
 - Sin XA ni transacción distribuida Kafka-Oracle.
@@ -216,7 +218,8 @@ WHERE s.search_id = :searchId;
 
 ## 8. Transacciones Oracle
 
-- Consumer: servicio de aplicación `@Transactional`.
+- Consumer: `JdbcHotelSearchRepository.save` es `@Transactional`; el
+  caso de uso `PersistHotelSearch` no declara transacciones.
 - GET: `@Transactional(readOnly=true)` es aceptable.
 - Un `DataSource` y un transaction manager.
 - Nunca mantener transacción Oracle abierta esperando Kafka.

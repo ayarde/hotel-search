@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import com.hotelsearch.domain.valueobject.SearchId;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.transaction.annotation.Transactional;
 
 class JdbcHotelSearchRepositoryTest {
 
@@ -156,6 +158,31 @@ class JdbcHotelSearchRepositoryTest {
         assertThat(result).isPresent();
         assertThat(result.get().search()).isEqualTo(expected.search());
         assertThat(result.get().equivalentsCount()).isEqualTo(2);
+    }
+
+    /**
+     * Verifica que la demarcación transaccional de la persistencia vive en
+     * el adaptador y no en el caso de uso.
+     *
+     * Condiciones:
+     * - Método save del adaptador JDBC
+     *
+     * Se espera:
+     * - save esté anotado con @Transactional
+     */
+    @Test
+    @DisplayName("save_TransactionBoundary_IsDeclaredOnAdapter")
+    void save_TransactionBoundary_IsDeclaredOnAdapter() throws NoSuchMethodException {
+        // given
+        Method save = JdbcHotelSearchRepository.class.getMethod("save", HotelSearch.class);
+
+        // when
+        boolean transactional = save.isAnnotationPresent(Transactional.class);
+
+        // then
+        assertThat(transactional)
+            .as("save debe abrir su propia transacción Oracle")
+            .isTrue();
     }
 
     // <editor-fold desc="Helpers">

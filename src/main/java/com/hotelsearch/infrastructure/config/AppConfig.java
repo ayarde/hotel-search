@@ -53,9 +53,13 @@ public class AppConfig {
     }
 
     /**
-     * Servicio de aplicación que persiste una búsqueda en Oracle. La
-     * anotación transaccional se aplica sobre el bean de Spring para que
-     * el commit de la base termine antes de que el listener retorne.
+     * Caso de uso que persiste en Oracle la búsqueda recibida por Kafka.
+     * No es transaccional: la transacción la abre el adaptador JDBC en
+     * {@code JdbcHotelSearchRepository.save}, de modo que el commit termina
+     * antes de que el listener retorne.
+     *
+     * @param repository repositorio de búsquedas
+     * @return caso de uso configurado
      */
     @Bean
     public PersistHotelSearch persistHotelSearch(HotelSearchRepository repository) {
