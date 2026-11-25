@@ -16,7 +16,7 @@ Request de ejemplo:
 
 ```json
 {
-  "hotelId": "550e8400-e29b-41d4-a716-446655440000",
+  "hotelId": "1234aBc",
   "checkIn": "09/11/2026",
   "checkOut": "29/11/2026",
   "ages": [29, 28, 4, 3]
@@ -61,9 +61,12 @@ definida.
 ### Identificadores
 
 - `hotelId` obligatorio.
-- Debe ser UUID válido, canónico, de 36 caracteres.
-- No se permiten espacios.
-- No normalizar mediante trim silencioso.
+- Texto libre definido por el proveedor, por ejemplo `1234aBc`. No se
+  exige formato UUID.
+- Entre 1 y 64 caracteres.
+- No se permiten caracteres de espacio en blanco en ninguna posición.
+- No normalizar mediante trim silencioso ni cambio de mayúsculas; la
+  comparación es exacta.
 - `searchId` generado por el servidor como UUIDv4.
 
 ### Fechas
@@ -141,7 +144,7 @@ Tabla `hotel_search`:
 | Columna      | Tipo                | Restricción / significado        |
 |--------------|---------------------|----------------------------------|
 | `search_id`  | `VARCHAR2(36 CHAR)` | PK, UUID del servidor            |
-| `hotel_id`   | `VARCHAR2(36 CHAR)` | UUID del hotel                   |
+| `hotel_id`   | `VARCHAR2(64 CHAR)` | Identificador del hotel (texto)  |
 | `check_in`   | `DATE`              | Fecha de entrada, medianoche     |
 | `check_out`  | `DATE`              | Fecha de salida, medianoche      |
 | `ages`       | `VARCHAR2(600 CHAR)`| JSON compacto de edades, orden preservado |

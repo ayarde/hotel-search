@@ -50,15 +50,16 @@ Recibe:
 
 ```json
 {
-  "hotelId": "550e8400-e29b-41d4-a716-446655440000",
+  "hotelId": "1234aBc",
   "checkIn": "09/11/2026",
   "checkOut": "29/11/2026",
   "ages": [29, 28, 4, 3]
 }
 ```
 
-- `hotelId`: UUID obligatorio, formato canónico de 36 caracteres, sin
-  espacios; no hacer trim silencioso.
+- `hotelId`: texto obligatorio de 1 a 64 caracteres, sin espacios en
+  blanco; no se exige formato UUID. No hacer trim silencioso ni cambiar
+  mayúsculas; `1234aBc` y `1234abc` son hoteles distintos.
 - `checkIn`, `checkOut`: formato `dd/MM/yyyy`; usar `LocalDate`
   internamente.
 - `checkIn` debe ser anterior a `checkOut`.
@@ -157,7 +158,7 @@ entre ACK de Kafka y persistencia del consumer.
 ```sql
 CREATE TABLE hotel_search (
     search_id   VARCHAR2(36 CHAR) NOT NULL,
-    hotel_id    VARCHAR2(36 CHAR) NOT NULL,
+    hotel_id    VARCHAR2(64 CHAR) NOT NULL,
     check_in    DATE NOT NULL,
     check_out   DATE NOT NULL,
     ages        VARCHAR2(600 CHAR) NOT NULL,
@@ -168,6 +169,9 @@ CREATE TABLE hotel_search (
 ```
 
 - Todos los nombres SQL en minúsculas.
+- El esquema se construye con migraciones incrementales: `V1` creó
+  `hotel_id` como `VARCHAR2(36 CHAR)` y una migración posterior la amplía
+  a 64. Las migraciones ya aplicadas no se editan.
 - `ages` guarda JSON compacto, por ejemplo `[29,28,4,3]`, preservando
   orden.
 - No agregar tabla de contadores.
