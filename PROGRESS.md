@@ -186,6 +186,10 @@ la búsqueda y su cantidad de equivalentes.
 - El DTO HTTP valida longitud y espacios con Bean Validation y OpenAPI
   muestra el ejemplo `1234aBc`. Un `hotelId` con formato UUID sigue siendo
   válido.
+- El DTO toma el máximo de `HotelId.MAX_LENGTH` y comparte una sola regex
+  portable (`HotelSearchRequest.HOTEL_ID_PATTERN`) entre Bean Validation y
+  OpenAPI. Un test recorre cada carácter del plano BMP y verifica que la
+  regex y `HotelId` aceptan exactamente lo mismo.
 - `V2__hotel_id_free_text.sql` amplía `hotel_id` a `VARCHAR2(64 CHAR)` sin
   editar `V1`.
 - Validación: `./gradlew build -PintegrationTest=true` en verde con 115
