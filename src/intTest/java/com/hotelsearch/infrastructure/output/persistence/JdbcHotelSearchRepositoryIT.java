@@ -197,7 +197,7 @@ class JdbcHotelSearchRepositoryIT {
      *
      * Condiciones:
      * - Búsqueda base y dos equivalentes con distinto searchId
-     * - Una búsqueda con distinto hotelId que no debe contar
+     * - Una búsqueda cuyo hotelId solo difiere en mayúsculas, que no debe contar
      *
      * Se espera:
      * - Conteo igual a 2
@@ -263,9 +263,46 @@ class JdbcHotelSearchRepositoryIT {
             .isZero();
     }
 
+    /**
+     * Verifica que la migración V2 amplía hotel_id y que un identificador
+     * de texto de longitud máxima se guarda y se lee sin cambios.
+     *
+     * Condiciones:
+     * - Flyway aplicó V1 y V2 sobre Oracle real
+     * - Búsqueda con un hotelId alfanumérico de 64 caracteres
+     *
+     * Se espera:
+     * - La columna hotel_id admita 64 caracteres
+     * - El hotelId leído sea idéntico al guardado
+     */
+    @Test
+    void save_MaxLengthTextHotelId_PersistsWithoutChanges() {
+        // given
+        String hotelId = "aB3".repeat(21) + "Z";
+        SearchId searchId = SearchId.generate();
+        HotelSearch search = searchOf(searchId, hotelId, LocalDate.of(2026, 11, 9),
+            LocalDate.of(2026, 11, 29), List.of(29));
+
+        // when
+        repository.save(search);
+        var found = repository.findByIdWithCount(searchId);
+        Integer columnLength = jdbcTemplate.queryForObject(
+            "SELECT char_length FROM user_tab_columns "
+                + "WHERE table_name = 'HOTEL_SEARCH' AND column_name = 'HOTEL_ID'",
+            Integer.class);
+
+        // then
+        assertThat(found).as("La búsqueda debe existir").isPresent();
+        assertAll(
+            () -> assertThat(columnLength).as("V2 debe ampliar hotel_id a 64").isEqualTo(64),
+            () -> assertThat(found.orElseThrow().search().hotelId().value())
+                .as("El hotelId debe leerse sin cambios").isEqualTo(hotelId)
+        );
+    }
+
     // <editor-fold desc="Helpers">
-    private static final String HOTEL_A = "550e8400-e29b-41d4-a716-446655440000";
-    private static final String HOTEL_B = "6f9619ff-8b86-4d01-b42d-00cf4fc964ff";
+    private static final String HOTEL_A = "1234aBc";
+    private static final String HOTEL_B = "1234abc";
 
     private HotelSearch searchOf(SearchId searchId, String hotelId, LocalDate checkIn,
                                  LocalDate checkOut, List<Integer> ages) {

@@ -65,7 +65,7 @@ class HotelSearchRestIT {
 
     private static final DateTimeFormatter HTTP_DATE_FORMATTER =
         DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ROOT);
-    private static final String HOTEL_ID = "550e8400-e29b-41d4-a716-446655440000";
+    private static final String HOTEL_ID = "1234aBc";
 
     @LocalServerPort
     private int port;
@@ -124,6 +124,7 @@ class HotelSearchRestIT {
             () -> assertThat(firstCount.searchCount()).isEqualTo(1),
             () -> assertThat(secondCount.searchCount()).isEqualTo(1),
             () -> assertThat(differentOrderCount.searchCount()).isEqualTo(0),
+            () -> assertThat(firstCount.hotelId()).isEqualTo(HOTEL_ID),
             () -> assertThat(firstCount.ages()).containsExactly(29, 28, 4, 3),
             () -> assertThat(openApi).contains("\"/search\""),
             () -> assertThat(openApi).contains("\"/count\""),
