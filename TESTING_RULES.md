@@ -228,6 +228,5 @@ Si `@ServiceConnection` no aplica, usar `@DynamicPropertySource`.
 
 - No sustituyen los criterios de aceptación de cada fase del
   `IMPLEMENTATION-PLAN.md`.
-- No autorizan añadir frameworks de testing no previstos.
 - No se permite usar H2 ni mocks de broker/base de datos en los
   integration tests.

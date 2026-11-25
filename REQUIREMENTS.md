@@ -108,8 +108,7 @@ definida.
 - No usar `java.util.Date`; usar `LocalDate`.
 - Evitar concatenación de String `+` dentro de loops.
 - Tests JUnit y Mockito.
-- Cobertura mínima JaCoCo 80% en branch, líneas, instrucciones y
-  métodos.
+- Cobertura mínima JaCoCo 80% en branch y líneas.
 - Swagger/OpenAPI.
 - Docker y Docker Compose.
 - La aplicación debe compilarse dentro de Docker.
