@@ -145,6 +145,7 @@ class HotelIdTest {
      * - El valor tiene un espacio en medio, al inicio o al final
      * - El valor contiene un tab o un salto de línea
      * - El valor está compuesto solo por espacios
+     * - El valor contiene espacios Unicode (U+00A0, U+2003, U+3000)
      *
      * Se espera:
      * - Se lance IllegalArgumentException en cada caso
@@ -153,12 +154,13 @@ class HotelIdTest {
     @DisplayName("of(String) rechaza espacios en blanco en cualquier posición")
     void of_Whitespace_Rejects() {
         // given
-        String[] valores = {"1234 aBc", " 1234aBc", "1234aBc ", "1234\taBc", "1234aBc\n", "   "};
+        String[] valores = {"1234 aBc", " 1234aBc", "1234aBc ", "1234\taBc", "1234aBc\n", "   ",
+            "1234\u00A0aBc", "1234\u2003aBc", "\u3000"};
 
         // when / then
         assertAll(Arrays.stream(valores).map(valor ->
             () -> assertThatThrownBy(() -> HotelId.of(valor))
-                .as("El hotelId [%s] debe ser rechazado", valor.replace("\t", "\\t").replace("\n", "\\n"))
+                .as("El hotelId %s debe ser rechazado", valor.codePoints().boxed().toList())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("hotelId no permite espacios en blanco")));
     }

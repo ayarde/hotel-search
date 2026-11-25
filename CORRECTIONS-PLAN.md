@@ -91,8 +91,9 @@ generado por el servidor.
   con `1234aBc`.
 
 Riesgo: cambia un contrato consumido (formato HTTP, evento Kafka y
-esquema). El JSON del evento sigue serializando `hotelId` como string,
-así que los mensajes en vuelo con UUID siguen siendo compatibles.
+esquema). El evento serializa `hotelId` como el objeto
+`{"value": "..."}` del record y esa forma no cambia, así que los
+mensajes en vuelo con un UUID siguen deserializándose.
 
 ------------------------------------------------------------------------
 

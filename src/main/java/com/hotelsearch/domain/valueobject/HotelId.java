@@ -21,9 +21,18 @@ public record HotelId(String value) {
         if (value.length() > MAX_LENGTH) {
             throw new IllegalArgumentException("hotelId no puede superar " + MAX_LENGTH + " caracteres");
         }
-        if (value.chars().anyMatch(Character::isWhitespace)) {
+        if (value.chars().anyMatch(HotelId::isBlankCharacter)) {
             throw new IllegalArgumentException("hotelId no permite espacios en blanco");
         }
+    }
+
+    /**
+     * Considera espacio tanto lo que Java trata como whitespace (espacio,
+     * tab, saltos de línea) como los separadores Unicode que no entran en
+     * esa categoría, por ejemplo el espacio de no separación U+00A0.
+     */
+    private static boolean isBlankCharacter(int character) {
+        return Character.isWhitespace(character) || Character.isSpaceChar(character);
     }
 
     public static HotelId of(String value) {

@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Unit tests de la traducción de eventos Kafka al modelo de dominio.
@@ -147,6 +148,38 @@ class HotelSearchEventMapperTest {
             .isInstanceOf(InvalidHotelSearchEventException.class)
             .hasMessageContaining("estructura inválida")
             .hasCauseInstanceOf(NullPointerException.class);
+    }
+
+    /**
+     * Verifica que un evento publicado antes del cambio de contrato, con un
+     * hotelId UUID, se sigue deserializando y mapeando sin cambios.
+     *
+     * Condiciones:
+     * - JSON con la forma que produce el producer: hotelId como objeto value
+     * - El hotelId es un UUID, como en los mensajes previos a la Fase 10
+     *
+     * Se espera:
+     * - El evento se deserialice y el hotelId conserve el UUID como texto
+     */
+    @Test
+    void toHotelSearch_LegacyUuidHotelIdJson_Deserializes() {
+        // given
+        String json = """
+            {"searchId":{"value":"f47ac10b-58cc-4372-a567-0e02b2c3d479"},
+             "hotelId":{"value":"550e8400-e29b-41d4-a716-446655440000"},
+             "checkIn":{"value":"2026-11-09"},
+             "checkOut":{"value":"2026-11-29"},
+             "ages":{"values":[29,28]}}
+            """;
+        HotelSearchEvent event = JsonMapper.builder().build().readValue(json, HotelSearchEvent.class);
+
+        // when
+        var search = mapper.toHotelSearch(event);
+
+        // then
+        assertThat(search.hotelId().value())
+            .as("El hotelId UUID de un mensaje previo debe conservarse como texto")
+            .isEqualTo("550e8400-e29b-41d4-a716-446655440000");
     }
 
     // <editor-fold desc="Helpers">

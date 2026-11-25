@@ -227,7 +227,8 @@ class HotelSearchControllerTest {
      * rechace con 400 antes de invocar el caso de uso.
      *
      * Condiciones:
-     * - El hotelId tiene un espacio en medio, al inicio, un tab o 65 caracteres
+     * - El hotelId tiene un espacio en medio, al inicio, un tab, un espacio
+     *   Unicode, está vacío o tiene 65 caracteres
      *
      * Se espera:
      * - Status 400 con el error asociado al campo hotelId
@@ -255,15 +256,6 @@ class HotelSearchControllerTest {
 
         // then
         verifyNoInteractions(submitHotelSearch);
-    }
-
-    private static Stream<Arguments> invalidHotelIds() {
-        String whitespaceError = "hotelId no permite espacios en blanco";
-        return Stream.of(
-            Arguments.of("1234 aBc", whitespaceError),
-            Arguments.of(" 1234aBc", whitespaceError),
-            Arguments.of("1234\\taBc", whitespaceError),
-            Arguments.of("A".repeat(65), "hotelId no puede superar 64 caracteres"));
     }
 
     /**
@@ -458,6 +450,17 @@ class HotelSearchControllerTest {
     }
 
     // <editor-fold desc="Helpers">
+    private static Stream<Arguments> invalidHotelIds() {
+        String whitespaceError = "hotelId no permite espacios en blanco";
+        return Stream.of(
+            Arguments.of("1234 aBc", whitespaceError),
+            Arguments.of(" 1234aBc", whitespaceError),
+            Arguments.of("1234\\taBc", whitespaceError),
+            Arguments.of("1234\u00A0aBc", whitespaceError),
+            Arguments.of("1234\u2003aBc", whitespaceError),
+            Arguments.of("", "hotelId es obligatorio"),
+            Arguments.of("A".repeat(65), "hotelId no puede superar 64 caracteres"));
+    }
     private HotelSearch validSearch(SearchId searchId) {
         return new HotelSearch(
             searchId,

@@ -22,7 +22,10 @@ import java.util.List;
 public record HotelSearchRequest(
     @NotBlank(message = "hotelId es obligatorio")
     @Size(max = 64, message = "hotelId no puede superar 64 caracteres")
-    @Pattern(regexp = "^\\S*$", message = "hotelId no permite espacios en blanco")
+    @Pattern(
+        regexp = "^[^\\p{javaWhitespace}\\p{javaSpaceChar}]*$",
+        message = "hotelId no permite espacios en blanco"
+    )
     @Schema(
         description = "Identificador del hotel definido por el proveedor. Texto de 1 a 64 "
             + "caracteres, sin espacios en blanco; se compara de forma exacta",
