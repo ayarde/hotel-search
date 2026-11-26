@@ -20,7 +20,7 @@ import com.hotelsearch.application.port.HotelSearchRepository;
 
 class PersistHotelSearchTest {
 
-    private static class FakeRepository implements HotelSearchRepository {
+    private static final class FakeRepository implements HotelSearchRepository {
         private boolean saved;
 
         @Override

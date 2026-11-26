@@ -64,11 +64,11 @@ class CheckOutTest {
     @DisplayName("dos CheckOut con la misma fecha son iguales")
     void equals_SameDate_Equals() {
         // given
-        CheckOut a = CheckOut.of(LocalDate.of(2026, 11, 29));
-        CheckOut b = CheckOut.of(LocalDate.of(2026, 11, 29));
+        CheckOut first = CheckOut.of(LocalDate.of(2026, 11, 29));
+        CheckOut second = CheckOut.of(LocalDate.of(2026, 11, 29));
 
         // when / then
-        assertThat(a).as("Misma fecha debe ser igual").isEqualTo(b);
+        assertThat(first).as("Misma fecha debe ser igual").isEqualTo(second);
     }
 
     /**
@@ -84,10 +84,10 @@ class CheckOutTest {
     @DisplayName("dos CheckOut con fechas distintas no son iguales")
     void equals_DifferentDate_NotEquals() {
         // given
-        CheckOut a = CheckOut.of(LocalDate.of(2026, 11, 29));
-        CheckOut b = CheckOut.of(LocalDate.of(2026, 11, 30));
+        CheckOut first = CheckOut.of(LocalDate.of(2026, 11, 29));
+        CheckOut second = CheckOut.of(LocalDate.of(2026, 11, 30));
 
         // when / then
-        assertThat(a).as("Fechas distintas no deben ser iguales").isNotEqualTo(b);
+        assertThat(first).as("Fechas distintas no deben ser iguales").isNotEqualTo(second);
     }
 }

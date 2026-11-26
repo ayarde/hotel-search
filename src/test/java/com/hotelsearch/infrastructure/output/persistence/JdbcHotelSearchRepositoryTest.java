@@ -20,7 +20,6 @@ import org.junit.jupiter.api.DisplayName;
 
 import com.hotelsearch.domain.model.HotelSearch;
 import com.hotelsearch.domain.model.HotelSearchWithCount;
-import com.hotelsearch.application.port.HotelSearchRepository;
 import com.hotelsearch.domain.valueobject.Ages;
 import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;

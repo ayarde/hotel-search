@@ -135,12 +135,12 @@ class KafkaConsumerConfigTest {
         when(template.send(any(ProducerRecord.class)))
             .thenReturn(CompletableFuture.completedFuture(null));
         DefaultErrorHandler handler = config.kafkaErrorHandler(template, DLT_TOPIC);
-        ConsumerRecord<String, Object> record = record();
+        ConsumerRecord<String, Object> consumerRecord = record();
 
         // when
         handler.handleOne(
             new InvalidHotelSearchEventException("evento inválido"),
-            record,
+            consumerRecord,
             mock(Consumer.class),
             mock(MessageListenerContainer.class));
 
@@ -150,7 +150,7 @@ class KafkaConsumerConfigTest {
         assertThat(captor.getValue().topic()).as("El mensaje debe ir al DLT configurado")
             .isEqualTo(DLT_TOPIC);
         assertThat(captor.getValue().key()).as("La key original debe conservarse")
-            .isEqualTo(record.key());
+            .isEqualTo(consumerRecord.key());
     }
 
     /**
@@ -171,13 +171,13 @@ class KafkaConsumerConfigTest {
         when(template.send(any(ProducerRecord.class)))
             .thenReturn(CompletableFuture.completedFuture(null));
         DefaultErrorHandler handler = config.kafkaErrorHandler(template, DLT_TOPIC);
-        ConsumerRecord<String, Object> record = record();
+        ConsumerRecord<String, Object> consumerRecord = record();
 
         // when
         for (int attempt = 0; attempt < 3; attempt++) {
             handler.handleOne(
                 new DataAccessResourceFailureException("Oracle no disponible"),
-                record,
+                consumerRecord,
                 mock(Consumer.class),
                 mock(MessageListenerContainer.class));
         }
@@ -185,7 +185,7 @@ class KafkaConsumerConfigTest {
 
         handler.handleOne(
             new DataAccessResourceFailureException("Oracle no disponible"),
-            record,
+            consumerRecord,
             mock(Consumer.class),
             mock(MessageListenerContainer.class));
 
@@ -275,6 +275,9 @@ class KafkaConsumerConfigTest {
         JsonMapper jsonMapper = JsonMapper.builder().build();
         HotelSearchEvent event = validEvent();
         byte[] payload = jsonMapper.writeValueAsBytes(event);
+        // El deserializador pertenece al factory, que lo comparte con cada
+        // consumer que crea; no lo cierra quien solo lo consulta.
+        @SuppressWarnings("PMD.CloseResource")
         var deserializer = config.hotelSearchConsumerFactory(new KafkaProperties(), jsonMapper)
             .getValueDeserializer();
 
@@ -300,6 +303,8 @@ class KafkaConsumerConfigTest {
     @Test
     void hotelSearchConsumerFactory_InvalidJson_ReportsErrorInHeader() {
         // given
+        // Mismo motivo que en el test anterior: el deserializador es del factory.
+        @SuppressWarnings("PMD.CloseResource")
         var deserializer = config.hotelSearchConsumerFactory(
                 new KafkaProperties(), JsonMapper.builder().build())
             .getValueDeserializer();
@@ -370,11 +375,11 @@ class KafkaConsumerConfigTest {
         PersistHotelSearch persistHotelSearch = mock(PersistHotelSearch.class);
         var listener = config.hotelSearchKafkaListener(config.hotelSearchEventMapper(), persistHotelSearch);
         HotelSearchEvent event = validEvent();
-        var record = new ConsumerRecord<>(
+        var consumerRecord = new ConsumerRecord<>(
             "hotel_availability_searches", 0, 12L, event.searchId().toString(), event);
 
         // when
-        listener.consume(record);
+        listener.consume(consumerRecord);
 
         // then
         ArgumentCaptor<HotelSearch> captor = ArgumentCaptor.forClass(HotelSearch.class);

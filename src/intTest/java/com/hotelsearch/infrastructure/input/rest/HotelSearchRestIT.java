@@ -49,19 +49,14 @@ import org.testcontainers.oracle.OracleContainer;
 class HotelSearchRestIT {
 
     @Container
-    private static final KafkaContainer kafka =
+    private static final KafkaContainer KAFKA =
         new KafkaContainer("apache/kafka:4.4.0")
             .withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "false");
 
     @Container
     @ServiceConnection
-    private static final OracleContainer oracle =
+    private static final OracleContainer ORACLE =
         new OracleContainer("gvenzl/oracle-free:23.26.3-slim-faststart");
-
-    @DynamicPropertySource
-    static void kafkaProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-    }
 
     private static final DateTimeFormatter HTTP_DATE_FORMATTER =
         DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ROOT);
@@ -76,6 +71,11 @@ class HotelSearchRestIT {
     private RestClient restClient;
     private LocalDate checkIn;
     private LocalDate checkOut;
+
+    @DynamicPropertySource
+    static void kafkaProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+    }
 
     @BeforeEach
     void setUp() {

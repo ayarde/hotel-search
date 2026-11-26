@@ -171,10 +171,10 @@ class AgesTest {
                 .containsExactly(29, 28, 4, 3),
             () -> assertThatThrownBy(() -> ages.values().add(5))
                 .as("La lista de edades debe ser inmutable")
-                .isInstanceOf(java.lang.UnsupportedOperationException.class),
+                .isInstanceOf(UnsupportedOperationException.class),
             () -> assertThatThrownBy(() -> ages.values().clear())
                 .as("La lista de edades no debe permitir limpiarse")
-                .isInstanceOf(java.lang.UnsupportedOperationException.class));
+                .isInstanceOf(UnsupportedOperationException.class));
     }
 
     /**
@@ -190,12 +190,12 @@ class AgesTest {
     @DisplayName("dos listas iguales en distinto orden no son equivalentes")
     void equals_DifferentOrder_NotEquivalent() {
         // given
-        Ages a = Ages.of(Arrays.asList(29, 28, 4, 3));
-        Ages b = Ages.of(Arrays.asList(28, 29, 4, 3));
+        Ages first = Ages.of(Arrays.asList(29, 28, 4, 3));
+        Ages second = Ages.of(Arrays.asList(28, 29, 4, 3));
 
         // when / then
-        assertThat(a).as("El orden de las edades importa para la equivalencia")
-            .isNotEqualTo(b);
+        assertThat(first).as("El orden de las edades importa para la equivalencia")
+            .isNotEqualTo(second);
     }
 
     /**
@@ -211,11 +211,11 @@ class AgesTest {
     @DisplayName("dos listas iguales en mismo orden son equivalentes")
     void equals_SameOrder_Equivalent() {
         // given
-        Ages a = Ages.of(Arrays.asList(29, 28, 4, 3));
-        Ages b = Ages.of(Arrays.asList(29, 28, 4, 3));
+        Ages first = Ages.of(Arrays.asList(29, 28, 4, 3));
+        Ages second = Ages.of(Arrays.asList(29, 28, 4, 3));
 
         // when / then
-        assertThat(a).as("Mismas edades en el mismo orden son equivalentes")
-            .isEqualTo(b);
+        assertThat(first).as("Mismas edades en el mismo orden son equivalentes")
+            .isEqualTo(second);
     }
 }

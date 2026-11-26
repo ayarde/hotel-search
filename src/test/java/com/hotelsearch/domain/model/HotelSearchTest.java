@@ -106,12 +106,12 @@ class HotelSearchTest {
         CheckOut checkOut = CheckOut.of(LocalDate.of(2026, 11, 29));
         Ages ages = Ages.of(List.of(29, 28, 4, 3));
 
-        HotelSearch a = new HotelSearch(SearchId.generate(), hotel, checkIn, checkOut, ages);
-        HotelSearch b = new HotelSearch(SearchId.generate(), hotel, checkIn, checkOut, ages);
+        HotelSearch first = new HotelSearch(SearchId.generate(), hotel, checkIn, checkOut, ages);
+        HotelSearch second = new HotelSearch(SearchId.generate(), hotel, checkIn, checkOut, ages);
 
         // when / then
-        assertThat(a).as("Distintos searchId hacen que las búsquedas sean distintas")
-            .isNotEqualTo(b);
+        assertThat(first).as("Distintos searchId hacen que las búsquedas sean distintas")
+            .isNotEqualTo(second);
     }
 
     /**
@@ -133,13 +133,13 @@ class HotelSearchTest {
         CheckOut checkOut = CheckOut.of(LocalDate.of(2026, 11, 29));
         Ages ages = Ages.of(List.of(29, 28, 4, 3));
 
-        HotelSearch a = new HotelSearch(id, hotel, checkIn, checkOut, ages);
-        HotelSearch b = new HotelSearch(id, hotel, checkIn, checkOut, ages);
+        HotelSearch first = new HotelSearch(id, hotel, checkIn, checkOut, ages);
+        HotelSearch second = new HotelSearch(id, hotel, checkIn, checkOut, ages);
 
         // when / then
-        assertThat(a).as("Mismo searchId y mismos datos hacen que las búsquedas sean iguales")
-            .isEqualTo(b);
-        assertThat(a.hashCode()).as("El hashCode debe ser igual para instancias iguales")
-            .isEqualTo(b.hashCode());
+        assertThat(first).as("Mismo searchId y mismos datos hacen que las búsquedas sean iguales")
+            .isEqualTo(second);
+        assertThat(first.hashCode()).as("El hashCode debe ser igual para instancias iguales")
+            .isEqualTo(second.hashCode());
     }
 }

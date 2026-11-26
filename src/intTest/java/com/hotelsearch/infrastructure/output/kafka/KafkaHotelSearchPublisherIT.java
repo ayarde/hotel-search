@@ -65,22 +65,17 @@ import com.hotelsearch.domain.valueobject.SearchId;
 @SpringBootTest(properties = "spring.kafka.listener.auto-startup=false")
 class KafkaHotelSearchPublisherIT {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaHotelSearchPublisherIT.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaHotelSearchPublisherIT.class);
 
     @Container
-    private static final KafkaContainer kafka =
+    private static final KafkaContainer KAFKA =
         new KafkaContainer("apache/kafka:4.4.0")
             .withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "false");
 
     @Container
     @ServiceConnection
-    private static final OracleContainer oracle =
+    private static final OracleContainer ORACLE =
         new OracleContainer("gvenzl/oracle-free:23.26.3-slim-faststart");
-
-    @DynamicPropertySource
-    static void kafkaProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-    }
 
     @Autowired
     private HotelSearchPublisher publisher;
@@ -90,6 +85,11 @@ class KafkaHotelSearchPublisherIT {
 
     @Autowired
     private Tracer tracer;
+
+    @DynamicPropertySource
+    static void kafkaProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+    }
 
     /**
      * Verifica que un evento válido se publica y recibe ACK del broker.
@@ -143,9 +143,9 @@ class KafkaHotelSearchPublisherIT {
         publisher.publish(event);
 
         // then - consumir el record crudo para inspeccionar la key
-        var record = consumeRecord();
-        assertThat(record).as("Debe recibir el record").isNotNull();
-        assertThat(record.key()).as("Key debe ser el searchId").isEqualTo(searchId.value().toString());
+        var consumerRecord = consumeRecord();
+        assertThat(consumerRecord).as("Debe recibir el record").isNotNull();
+        assertThat(consumerRecord.key()).as("Key debe ser el searchId").isEqualTo(searchId.value().toString());
     }
 
     /**
@@ -168,21 +168,21 @@ class KafkaHotelSearchPublisherIT {
         Span span = tracer.nextSpan().name("phase6-publish").start();
 
         // when
-        try (Tracer.SpanInScope ignored = tracer.withSpan(span)) {
+        try (Tracer.SpanInScope _ = tracer.withSpan(span)) {
             publisher.publish(event);
         } finally {
             span.end();
         }
 
         // then
-        ConsumerRecord<String, Object> record = consumeRecord(searchId.toString());
-        var searchIdHeader = record.headers().lastHeader(CorrelationContext.SEARCH_ID);
+        ConsumerRecord<String, Object> consumerRecord = consumeRecord(searchId.toString());
+        var searchIdHeader = consumerRecord.headers().lastHeader(CorrelationContext.SEARCH_ID);
         assertThat(searchIdHeader).as("El searchId debe viajar en un header")
             .isNotNull();
         assertAll(
             () -> assertThat(new String(searchIdHeader.value(), StandardCharsets.UTF_8))
                 .isEqualTo(searchId.toString()),
-            () -> assertThat(record.headers().lastHeader("traceparent"))
+            () -> assertThat(consumerRecord.headers().lastHeader("traceparent"))
                 .as("El contexto de tracing debe propagarse a Kafka")
                 .isNotNull());
     }
@@ -208,10 +208,10 @@ class KafkaHotelSearchPublisherIT {
         Span span = tracer.nextSpan().name("phase6-logging").start();
 
         // when
-        try (Tracer.SpanInScope ignored = tracer.withSpan(span)) {
-            try (MdcScope scope = MdcScope.search(
+        try (Tracer.SpanInScope _ = tracer.withSpan(span)) {
+            try (MdcScope _ = MdcScope.search(
                 CorrelationContext.KAFKA_PRODUCER_COMPONENT, searchId)) {
-                log.info(marker);
+                LOG.info(marker);
             }
         } finally {
             span.end();
@@ -271,8 +271,8 @@ class KafkaHotelSearchPublisherIT {
         try (var consumer = createConsumer()) {
             consumer.subscribe(List.of("hotel_availability_searches"));
             var records = consumer.poll(Duration.ofSeconds(10));
-            for (var record : records.records("hotel_availability_searches")) {
-                var bytes = (byte[]) record.value();
+            for (var consumerRecord : records.records("hotel_availability_searches")) {
+                var bytes = (byte[]) consumerRecord.value();
                 try {
                     var mapper = JsonMapper.builder().findAndAddModules().build();
                     var event = mapper.readValue(bytes, HotelSearchEvent.class);
@@ -291,8 +291,9 @@ class KafkaHotelSearchPublisherIT {
         try (var consumer = createConsumer()) {
             consumer.subscribe(List.of("hotel_availability_searches"));
             var records = consumer.poll(Duration.ofSeconds(10));
-            for (var record : records.records("hotel_availability_searches")) {
-                return record;
+            var iterator = records.records("hotel_availability_searches").iterator();
+            if (iterator.hasNext()) {
+                return iterator.next();
             }
             throw new IllegalStateException("No se recibió mensaje en el topic");
         }
@@ -302,9 +303,9 @@ class KafkaHotelSearchPublisherIT {
         try (var consumer = createConsumer()) {
             consumer.subscribe(List.of("hotel_availability_searches"));
             var records = consumer.poll(Duration.ofSeconds(10));
-            for (var record : records.records("hotel_availability_searches")) {
-                if (expectedSearchId.equals(record.key())) {
-                    return record;
+            for (var consumerRecord : records.records("hotel_availability_searches")) {
+                if (expectedSearchId.equals(consumerRecord.key())) {
+                    return consumerRecord;
                 }
             }
             throw new IllegalStateException(
@@ -314,12 +315,11 @@ class KafkaHotelSearchPublisherIT {
 
     private KafkaConsumer<String, Object> createConsumer() {
         var props = Map.<String, Object>of(
-            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers(),
+            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
             ConsumerConfig.GROUP_ID_CONFIG, "test-consumer-" + System.currentTimeMillis(),
             ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                org.apache.kafka.common.serialization.ByteArrayDeserializer.class
+            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class
         );
         return new KafkaConsumer<>(props);
     }

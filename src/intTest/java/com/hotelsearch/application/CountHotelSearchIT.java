@@ -47,7 +47,7 @@ class CountHotelSearchIT {
 
     @Container
     @ServiceConnection
-    private static final OracleContainer oracle =
+    private static final OracleContainer ORACLE =
         new OracleContainer("gvenzl/oracle-free:23.26.3-slim-faststart");
 
     private static final String HOTEL_A = "550e8400-e29b-41d4-a716-446655440000";

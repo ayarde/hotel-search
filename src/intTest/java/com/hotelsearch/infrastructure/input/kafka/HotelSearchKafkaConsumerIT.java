@@ -81,19 +81,14 @@ class HotelSearchKafkaConsumerIT {
     private static final String TEST_CONSTRAINT = "ck_phase4_blocked_hotel";
 
     @Container
-    private static final KafkaContainer kafka =
+    private static final KafkaContainer KAFKA =
         new KafkaContainer("apache/kafka:4.4.0")
             .withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "false");
 
     @Container
     @ServiceConnection
-    private static final OracleContainer oracle =
+    private static final OracleContainer ORACLE =
         new OracleContainer("gvenzl/oracle-free:23.26.3-slim-faststart");
-
-    @DynamicPropertySource
-    static void kafkaProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-    }
 
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
@@ -109,6 +104,11 @@ class HotelSearchKafkaConsumerIT {
 
     @Autowired
     private HikariDataSource dataSource;
+
+    @DynamicPropertySource
+    static void kafkaProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+    }
 
     /**
      * Limpia la tabla antes de cada escenario para que las aserciones
@@ -265,7 +265,7 @@ class HotelSearchKafkaConsumerIT {
         HotelSearchEvent event = eventOf(searchId, HOTEL_ID,
             LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 29));
         dataSource.getHikariPoolMXBean().softEvictConnections();
-        oracle.getDockerClient().pauseContainerCmd(oracle.getContainerId()).exec();
+        ORACLE.getDockerClient().pauseContainerCmd(ORACLE.getContainerId()).exec();
 
         ConsumerRecord<String, byte[]> recovered;
         try {
@@ -275,7 +275,7 @@ class HotelSearchKafkaConsumerIT {
             // then
             recovered = awaitDltRecord(searchId.toString());
         } finally {
-            oracle.getDockerClient().unpauseContainerCmd(oracle.getContainerId()).exec();
+            ORACLE.getDockerClient().unpauseContainerCmd(ORACLE.getContainerId()).exec();
             dataSource.getHikariPoolMXBean().softEvictConnections();
         }
 
@@ -378,7 +378,7 @@ class HotelSearchKafkaConsumerIT {
     private long publishRaw(String key, byte[] value)
         throws InterruptedException, ExecutionException, TimeoutException {
         Properties properties = new Properties();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
         properties.put(ProducerConfig.ACKS_CONFIG, "all");
@@ -391,7 +391,7 @@ class HotelSearchKafkaConsumerIT {
 
     private ConsumerRecord<String, byte[]> awaitDltRecord(String expectedKey) {
         Properties properties = new Properties();
-        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, "dlt-verifier-" + System.nanoTime());
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
@@ -402,9 +402,10 @@ class HotelSearchKafkaConsumerIT {
             consumer.subscribe(List.of(DLT_TOPIC));
             long deadline = System.nanoTime() + Duration.ofSeconds(60).toNanos();
             while (System.nanoTime() < deadline) {
-                for (ConsumerRecord<String, byte[]> record : consumer.poll(Duration.ofMillis(500))) {
-                    if (expectedKey.equals(record.key())) {
-                        return record;
+                var records = consumer.poll(Duration.ofMillis(500));
+                for (ConsumerRecord<String, byte[]> consumerRecord : records) {
+                    if (expectedKey.equals(consumerRecord.key())) {
+                        return consumerRecord;
                     }
                 }
             }
@@ -412,8 +413,8 @@ class HotelSearchKafkaConsumerIT {
         throw new AssertionError("No se recibió el mensaje " + expectedKey + " en el DLT");
     }
 
-    private int deliveryAttempt(ConsumerRecord<String, byte[]> record) {
-        var header = record.headers().lastHeader(KafkaHeaders.DELIVERY_ATTEMPT);
+    private int deliveryAttempt(ConsumerRecord<String, byte[]> consumerRecord) {
+        var header = consumerRecord.headers().lastHeader(KafkaHeaders.DELIVERY_ATTEMPT);
         assertThat(header).as("El registro debe incluir el contador de intentos")
             .isNotNull();
         return ByteBuffer.wrap(header.value()).getInt();
@@ -439,7 +440,7 @@ class HotelSearchKafkaConsumerIT {
 
     private AdminClient adminClient() {
         return AdminClient.create(Map.of(
-            AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()));
+            AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()));
     }
 
     private int rowCount(SearchId searchId) {

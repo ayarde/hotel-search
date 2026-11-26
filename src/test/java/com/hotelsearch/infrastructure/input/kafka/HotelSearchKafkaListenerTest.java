@@ -144,13 +144,13 @@ class HotelSearchKafkaListenerTest {
                 .isEqualTo(event.searchId().toString());
             return null;
         }).when(persistHotelSearch).execute(search);
-        ConsumerRecord<String, HotelSearchEvent> record = recordWithoutSearchId(event);
-        record.headers().add(
+        ConsumerRecord<String, HotelSearchEvent> consumerRecord = recordWithoutSearchId(event);
+        consumerRecord.headers().add(
             CorrelationContext.SEARCH_ID,
             "no-es-uuid".getBytes(StandardCharsets.UTF_8));
 
         // when
-        listener.consume(record);
+        listener.consume(consumerRecord);
 
         // then
         assertThat(MDC.getCopyOfContextMap()).isNull();
@@ -234,11 +234,11 @@ class HotelSearchKafkaListenerTest {
     }
 
     private ConsumerRecord<String, HotelSearchEvent> recordWithSearchId(HotelSearchEvent event) {
-        ConsumerRecord<String, HotelSearchEvent> record = recordWithoutSearchId(event);
-        record.headers().add(
+        ConsumerRecord<String, HotelSearchEvent> consumerRecord = recordWithoutSearchId(event);
+        consumerRecord.headers().add(
             CorrelationContext.SEARCH_ID,
             event.searchId().toString().getBytes(StandardCharsets.UTF_8));
-        return record;
+        return consumerRecord;
     }
 
     private ConsumerRecord<String, HotelSearchEvent> recordWithoutSearchId(HotelSearchEvent event) {

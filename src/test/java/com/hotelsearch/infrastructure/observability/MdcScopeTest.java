@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
@@ -31,7 +30,7 @@ class MdcScopeTest {
 
         try {
             // when
-            try (MdcScope ignored = MdcScope.search(
+            try (MdcScope _ = MdcScope.search(
                 CorrelationContext.KAFKA_PRODUCER_COMPONENT, "search-1")) {
                 // then
                 assertThat(MDC.getCopyOfContextMap())
@@ -67,7 +66,7 @@ class MdcScopeTest {
         MDC.clear();
 
         // when
-        try (MdcScope ignored = MdcScope.component(CorrelationContext.REST_COMPONENT)) {
+        try (MdcScope _ = MdcScope.component(CorrelationContext.REST_COMPONENT)) {
             // then
             assertThat(MDC.get(CorrelationContext.COMPONENT))
                 .isEqualTo(CorrelationContext.REST_COMPONENT);
@@ -92,6 +91,9 @@ class MdcScopeTest {
     void close_CalledTwice_DoesNotOverwriteNewerContext() {
         // given
         MDC.clear();
+        // El test cierra el scope a mano dos veces; un try-with-resources
+        // agregaría un tercer cierre que no es parte del escenario.
+        @SuppressWarnings("PMD.CloseResource")
         MdcScope scope = MdcScope.component(CorrelationContext.REST_COMPONENT);
         scope.close();
         MDC.put(CorrelationContext.COMPONENT, "otro-componente");

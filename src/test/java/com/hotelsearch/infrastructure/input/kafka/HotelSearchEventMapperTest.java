@@ -49,7 +49,7 @@ class HotelSearchEventMapperTest {
         // then
         assertAll(
             () -> assertThat(search.searchId()).as("El searchId debe conservarse").isEqualTo(searchId),
-            () -> assertThat(search.hotelId().value().toString())
+            () -> assertThat(search.hotelId().value())
                 .as("El hotelId debe conservarse")
                 .isEqualTo("550e8400-e29b-41d4-a716-446655440000"),
             () -> assertThat(search.checkIn().value()).as("El checkIn debe conservarse")

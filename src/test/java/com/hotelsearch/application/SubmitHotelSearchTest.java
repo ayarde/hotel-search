@@ -19,7 +19,7 @@ class SubmitHotelSearchTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(
         Instant.parse("2026-11-10T12:00:00Z"), ZoneId.of("UTC"));
 
-    private static class RecordingPublisher implements HotelSearchPublisher {
+    private static final class RecordingPublisher implements HotelSearchPublisher {
         private HotelSearchEvent last;
 
         @Override
@@ -62,7 +62,7 @@ class SubmitHotelSearchTest {
         assertAll(
             () -> assertThat(result.searchId().toString()).as("El searchId debe tener 36 caracteres")
                 .hasSize(36),
-            () -> assertThat(result.search().hotelId().value().toString())
+            () -> assertThat(result.search().hotelId().value())
                 .as("El hotelId debe coincidir con el solicitado")
                 .isEqualTo("550e8400-e29b-41d4-a716-446655440000"),
             () -> assertThat(result.search().checkIn().value())

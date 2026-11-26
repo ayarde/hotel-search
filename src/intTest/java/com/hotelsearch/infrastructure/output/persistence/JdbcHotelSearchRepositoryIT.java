@@ -53,8 +53,11 @@ class JdbcHotelSearchRepositoryIT {
 
     @Container
     @ServiceConnection
-    private static final OracleContainer oracle =
+    private static final OracleContainer ORACLE =
         new OracleContainer("gvenzl/oracle-free:23.26.3-slim-faststart");
+
+    private static final String HOTEL_A = "1234aBc";
+    private static final String HOTEL_B = "1234abc";
 
     @Autowired
     private JdbcHotelSearchRepository repository;
@@ -332,9 +335,6 @@ class JdbcHotelSearchRepositoryIT {
     }
 
     // <editor-fold desc="Helpers">
-    private static final String HOTEL_A = "1234aBc";
-    private static final String HOTEL_B = "1234abc";
-
     private HotelSearch searchOf(SearchId searchId, String hotelId, LocalDate checkIn,
                                  LocalDate checkOut, List<Integer> ages) {
         return new HotelSearch(
