@@ -4,6 +4,11 @@ spring-dependency-management = "1.1.7"
 springdoc-openapi = "3.2.0"
 ojdbc17 = "23.26.3.0.0"
 pmd = "7.29.0"
+# Versiones fijadas por CVE; se aplican como constraints en build.gradle.kts.
+jackson = "3.2.4"
+jackson-annotations = "2.22"
+commons-codec = "1.23.0"
+json-smart = "2.6.1"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
@@ -31,3 +36,10 @@ ojdbc17 = { module = "com.oracle.database.jdbc:ojdbc17", version.ref = "ojdbc17"
 testcontainers-oracle-free = { module = "org.testcontainers:testcontainers-oracle-free" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
+
+jackson-bom = { module = "tools.jackson:jackson-bom", version.ref = "jackson" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-core = { module = "tools.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson-annotations" }
+commons-codec = { module = "commons-codec:commons-codec", version.ref = "commons-codec" }
+json-smart = { module = "net.minidev:json-smart", version.ref = "json-smart" }

@@ -3,13 +3,13 @@
 Estado del proyecto por fases, con el alcance ya implementado, su
 validación y lo que queda pendiente.
 
-Última actualización: 2026-11-25 · Rama `refactor/fase-13-analisis-estatico` · Fases 0–13 implementadas
+Última actualización: 2026-11-25 · Rama `chore/fase-15-sugerencias` · Fases 0–15 implementadas
 
 ## Estado general
 
 Fases 0 a 9 implementadas y validadas. Después de la revisión externa se
-abrió `CORRECTIONS-PLAN.md` (Fases 10 a 15); las Fases 10 a 13 están
-implementadas y las Fases 14 y 15 están pendientes.
+abrió `CORRECTIONS-PLAN.md` (Fases 10 a 15); las seis fases están
+implementadas.
 
 El flujo completo que ya funciona es: POST REST → publicación de un evento
 en `hotel_availability_searches` → consumer Kafka → validación estructural →
@@ -357,6 +357,50 @@ la búsqueda y su cantidad de equivalentes.
   en la validación final de la Fase 13, después de las correcciones de la
   revisión: `LINE` 95,5 % (421/441) y `BRANCH` 91,7 % (88/96). El 95,0 %
   (419/441) que figura arriba es la medición anterior a esas correcciones.
+
+### Fase 15 — Sugerencias: constraints de versiones y `validSearchId`
+
+- Rama: `chore/fase-15-sugerencias`.
+- Las versiones fijadas por CVE (Jackson 3.2.4, jackson-annotations 2.22,
+  commons-codec 1.23.0 y json-smart 2.6.1) pasan al catálogo
+  `gradle/libs.versions.toml` y se declaran como `constraints` con
+  `because("CVE-...")`. Se quitan las dependencias directas usadas solo para
+  fijar versiones, incluido `json-smart` en `testImplementation`.
+- Hallazgo: el plugin `io.spring.dependency-management` reescribe los
+  constraints, el `enforcedPlatform` y `resolutionStrategy.force` con las
+  versiones que gestiona Spring Boot. Solo con constraints se resolvía
+  `jackson-databind` 3.1.7 y `json-smart` 2.6.0, y con `force` pasaba lo
+  mismo: lo que fijaba las versiones eran las dependencias directas. Se
+  quitó `force`, porque no tenía efecto, y las mismas coordenadas del
+  catálogo se declaran en `dependencyManagement { dependencies { ... } }`,
+  que es lo que el plugin respeta. Se evaluó reemplazar el plugin por
+  `platform(SpringBootPlugin.BOM_COORDINATES)`: funciona sin `force`, pero
+  agrega `aopalliance` 1.0 al runtime y cambia la gestión de todas las
+  dependencias, así que se mantuvo el plugin.
+- `./gradlew dependencies` antes y después resuelve las mismas versiones en
+  `compileClasspath`, `runtimeClasspath`, `testRuntimeClasspath` e
+  `intTestRuntimeClasspath`. La única diferencia es que `commons-codec` ya
+  no aparece en runtime, compile y test, porque solo lo traía la declaración
+  directa; en integration tests lo trae Testcontainers y resuelve 1.23.0.
+- `RequestCorrelationFilter.validSearchId` devuelve `Optional<String>`. Un
+  `searchId` inválido no entra al MDC y se registra en `DEBUG` sin la traza,
+  recortado a 64 caracteres y con los caracteres de control reemplazados
+  por `_`, para que un CR o LF no pueda abrir una línea de log falsa.
+- Observaciones de la revisión, resueltas en la misma fase:
+  - El sanitizado también reemplaza los separadores Unicode U+2028 y U+2029,
+    que algunos visores de logs muestran como salto de línea.
+  - La tarea `verifyCvePinnedVersions`, que corre en `check`, falla si
+    alguna librería fijada por CVE resuelve una versión distinta de la del
+    catálogo en `runtimeClasspath`, `testRuntimeClasspath` o
+    `intTestRuntimeClasspath`. Así, si un cambio del plugin o de Spring Boot
+    vuelve a pisar el pin, el build no pasa en silencio. Se comprobó quitando
+    el pin: la tarea falla y lista los 12 desvíos.
+- Validación final, con las observaciones incluidas:
+  `./gradlew clean build -PintegrationTest=true` en verde con 153 unit tests
+  y 24 integration tests, sin fallos ni tests omitidos, y con
+  `verifyCvePinnedVersions` ejecutada dentro de `check`. PMD en 0
+  hallazgos. JaCoCo con exclusiones reducidas: `LINE` 95,6 % (433/453) y
+  `BRANCH` 93,6 % (103/110).
 
 ## Validaciones actuales
 

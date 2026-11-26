@@ -133,17 +133,20 @@ configurations {
     }
 }
 
-// Forzar versiones seguras para CVEs en todas las configuraciones
-configurations.configureEach {
-    resolutionStrategy {
-        // CVE-2026-110879: Jackson 3.2.4
-        force("tools.jackson.core:jackson-databind:3.2.4")
-        force("tools.jackson.core:jackson-core:3.2.4")
-        force("com.fasterxml.jackson.core:jackson-annotations:2.22")
-        // CVE-2026-113602: json-smart 2.6.1
-        force("net.minidev:json-smart:2.6.1")
-        // CVE-2026-119078: commons-codec 1.23.0
-        force("commons-codec:commons-codec:1.23.0")
+// Los constraints del bloque dependencies documentan las versiones seguras y su
+// CVE, pero no alcanzan solos: el plugin io.spring.dependency-management
+// reescribe constraints, BOMs y resolutionStrategy.force con las versiones que
+// gestiona Spring Boot (se resolvía jackson-databind 3.1.7 y json-smart
+// 2.6.0). Por eso las mismas coordenadas del catálogo también se declaran en
+// la gestión de dependencias del plugin, que es la que efectivamente manda.
+val cvePinnedLibraries =
+    listOf(libs.jackson.databind, libs.jackson.core, libs.jackson.annotations, libs.commons.codec, libs.json.smart)
+        .map { library -> library.get() }
+        .map { library -> "${library.module}:${library.versionConstraint.requiredVersion}" }
+
+dependencyManagement {
+    dependencies {
+        cvePinnedLibraries.forEach { dependency(it) }
     }
 }
 
@@ -158,21 +161,31 @@ dependencies {
     implementation(libs.springdoc.openapi.starter.webmvc.ui)
     implementation(libs.flyway.database.oracle)
     runtimeOnly(libs.ojdbc17)
-    // CVE-2026-110879: forzar Jackson 3.2.4 (versiones estrictas)
-    implementation(enforcedPlatform("tools.jackson:jackson-bom:3.2.4"))
-    // Dependencias explícitas para garantizar las versiones
-    implementation("tools.jackson.core:jackson-databind:3.2.4")
-    implementation("tools.jackson.core:jackson-core:3.2.4")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
-    // CVE-2026-119078: commons-codec 1.23.0
-    implementation("commons-codec:commons-codec:1.23.0")
+    // CVE-2026-110879: BOM de Jackson 3.2.4 para los módulos tools.jackson.
+    // Las configuraciones de test lo heredan de implementation.
+    implementation(enforcedPlatform(libs.jackson.bom))
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.webmvc.test)
-    // CVE-2026-113602: json-smart ≤2.6.0 vulnerable; forzar versión segura
-    testImplementation("net.minidev:json-smart:2.6.1")
-    // CVE-2026-110879: alinear Jackson con BOM 3.2.4 (estricto)
-    testImplementation(enforcedPlatform("tools.jackson:jackson-bom:3.2.4"))
-    testImplementation("tools.jackson.core:jackson-databind:3.2.4")
+
+    // Versiones mínimas seguras. Un constraint no agrega la librería al
+    // classpath: solo fija la versión cuando otra dependencia la trae.
+    constraints {
+        implementation(libs.jackson.databind) {
+            because("CVE-2026-110879: Jackson anterior a 3.2.4 es vulnerable")
+        }
+        implementation(libs.jackson.core) {
+            because("CVE-2026-110879: Jackson anterior a 3.2.4 es vulnerable")
+        }
+        implementation(libs.jackson.annotations) {
+            because("CVE-2026-110879: versión de jackson-annotations alineada con Jackson 3.2.4")
+        }
+        implementation(libs.commons.codec) {
+            because("CVE-2026-119078: commons-codec anterior a 1.23.0 es vulnerable")
+        }
+        testImplementation(libs.json.smart) {
+            because("CVE-2026-113602: json-smart 2.6.0 o anterior es vulnerable")
+        }
+    }
 
     "intTestImplementation"(libs.spring.boot.starter.test)
     "intTestImplementation"(libs.spring.boot.web.server.test)
@@ -194,8 +207,45 @@ val integrationTest =
         onlyIf { providers.gradleProperty("integrationTest").getOrElse("false") == "true" }
     }
 
+// El pin depende de que el plugin de gestión de dependencias respete su propio
+// bloque dependencyManagement. Si un cambio del plugin o de Spring Boot altera
+// esa precedencia, una librería fijada podría volver en silencio a una versión
+// vulnerable; esta tarea lo detecta en `check`.
+val verifyCvePinnedVersions =
+    tasks.register("verifyCvePinnedVersions") {
+        description = "Verifica que las librerías fijadas por CVE resuelvan la versión del catálogo."
+        group = "verification"
+        val expectedVersions =
+            cvePinnedLibraries.associate { coordinates ->
+                coordinates.substringBeforeLast(':') to coordinates.substringAfterLast(':')
+            }
+        val resolutionResults =
+            listOf("runtimeClasspath", "testRuntimeClasspath", "intTestRuntimeClasspath")
+                .associateWith { name -> configurations.named(name).map { it.incoming.resolutionResult } }
+        doLast {
+            val mismatches =
+                resolutionResults.flatMap { (configuration, result) ->
+                    result.get().allComponents.mapNotNull { component ->
+                        val module = component.moduleVersion ?: return@mapNotNull null
+                        val expected = expectedVersions["${module.group}:${module.name}"]
+                        if (expected == null || module.version == expected) {
+                            null
+                        } else {
+                            "$configuration: ${module.group}:${module.name} resolvió ${module.version}, " +
+                                "se esperaba $expected"
+                        }
+                    }
+                }
+            if (mismatches.isNotEmpty()) {
+                throw GradleException(
+                    "Versiones fijadas por CVE alteradas:\n" + mismatches.joinToString("\n"),
+                )
+            }
+        }
+    }
+
 tasks.named("check") {
-    dependsOn(integrationTest)
+    dependsOn(integrationTest, verifyCvePinnedVersions)
 }
 
 tasks.named<Test>("test") {
