@@ -2,6 +2,7 @@ package com.hotelsearch.infrastructure.input.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.hotelsearch.application.CountHotelSearch;
 import com.hotelsearch.application.SubmitHotelSearch;
@@ -44,10 +45,11 @@ class HotelSearchRestMapperTest {
         SubmitHotelSearch.Command command = mapper.toCommand(request);
 
         // then
-        assertThat(command.hotelId()).isEqualTo(request.hotelId());
-        assertThat(command.checkIn()).isEqualTo(LocalDate.of(2026, 11, 9));
-        assertThat(command.checkOut()).isEqualTo(LocalDate.of(2026, 11, 29));
-        assertThat(command.ages()).containsExactly(29, 28, 4, 3);
+        assertAll(
+            () -> assertThat(command.hotelId()).isEqualTo(request.hotelId()),
+            () -> assertThat(command.checkIn()).isEqualTo(LocalDate.of(2026, 11, 9)),
+            () -> assertThat(command.checkOut()).isEqualTo(LocalDate.of(2026, 11, 29)),
+            () -> assertThat(command.ages()).containsExactly(29, 28, 4, 3));
     }
 
     /**
@@ -160,12 +162,13 @@ class HotelSearchRestMapperTest {
         var response = mapper.toResponse(result);
 
         // then
-        assertThat(response.searchId()).isEqualTo(searchId.toString());
-        assertThat(response.hotelId()).isEqualTo("550e8400-e29b-41d4-a716-446655440000");
-        assertThat(response.checkIn()).isEqualTo("09/11/2026");
-        assertThat(response.checkOut()).isEqualTo("29/11/2026");
-        assertThat(response.ages()).containsExactly(29, 28, 4, 3);
-        assertThat(response.searchCount()).isEqualTo(2);
+        assertAll(
+            () -> assertThat(response.searchId()).isEqualTo(searchId.toString()),
+            () -> assertThat(response.hotelId()).isEqualTo("550e8400-e29b-41d4-a716-446655440000"),
+            () -> assertThat(response.checkIn()).isEqualTo("09/11/2026"),
+            () -> assertThat(response.checkOut()).isEqualTo("29/11/2026"),
+            () -> assertThat(response.ages()).containsExactly(29, 28, 4, 3),
+            () -> assertThat(response.searchCount()).isEqualTo(2));
     }
 
     // <editor-fold desc="Helpers">

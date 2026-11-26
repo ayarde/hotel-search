@@ -2,6 +2,7 @@ package com.hotelsearch.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -57,25 +58,26 @@ class SubmitHotelSearchTest {
 
         // then
         assertThat(result.searchId()).as("El searchId generado no debe ser nulo").isNotNull();
-        assertThat(result.searchId().toString()).as("El searchId debe tener 36 caracteres").hasSize(36);
-        assertThat(result.search().hotelId().value().toString())
-            .as("El hotelId debe coincidir con el solicitado")
-            .isEqualTo("550e8400-e29b-41d4-a716-446655440000");
-        assertThat(result.search().checkIn().value())
-            .as("El checkIn debe coincidir con el solicitado")
-            .isEqualTo(LocalDate.of(2026, 11, 10));
-        assertThat(result.search().checkOut().value())
-            .as("El checkOut debe coincidir con el solicitado")
-            .isEqualTo(LocalDate.of(2026, 11, 29));
-        assertThat(result.search().ages().values())
-            .as("Las edades deben conservar el orden")
-            .containsExactly(29, 28, 4, 3);
-
         assertThat(publisher.last).as("Se debe publicar un evento").isNotNull();
-        assertThat(publisher.last.searchId()).as("El evento debe llevar el searchId generado")
-            .isEqualTo(result.searchId());
-        assertThat(publisher.last.ages().values()).as("El evento debe llevar las edades")
-            .containsExactly(29, 28, 4, 3);
+        assertAll(
+            () -> assertThat(result.searchId().toString()).as("El searchId debe tener 36 caracteres")
+                .hasSize(36),
+            () -> assertThat(result.search().hotelId().value().toString())
+                .as("El hotelId debe coincidir con el solicitado")
+                .isEqualTo("550e8400-e29b-41d4-a716-446655440000"),
+            () -> assertThat(result.search().checkIn().value())
+                .as("El checkIn debe coincidir con el solicitado")
+                .isEqualTo(LocalDate.of(2026, 11, 10)),
+            () -> assertThat(result.search().checkOut().value())
+                .as("El checkOut debe coincidir con el solicitado")
+                .isEqualTo(LocalDate.of(2026, 11, 29)),
+            () -> assertThat(result.search().ages().values())
+                .as("Las edades deben conservar el orden")
+                .containsExactly(29, 28, 4, 3),
+            () -> assertThat(publisher.last.searchId()).as("El evento debe llevar el searchId generado")
+                .isEqualTo(result.searchId()),
+            () -> assertThat(publisher.last.ages().values()).as("El evento debe llevar las edades")
+                .containsExactly(29, 28, 4, 3));
     }
 
     /**

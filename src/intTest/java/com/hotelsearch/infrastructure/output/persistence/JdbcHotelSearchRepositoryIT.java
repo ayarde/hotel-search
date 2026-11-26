@@ -163,11 +163,12 @@ class JdbcHotelSearchRepositoryIT {
             "La constraint de fechas debe rechazar el INSERT y propagarse");
 
         // then
-        assertThat(exception).as("El error SQL debe traducirse a DataIntegrityViolationException")
-            .isNotNull();
-        assertThat(rowCountOf(validId)).as("La búsqueda previa debe seguir intacta").isEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM hotel_search", Integer.class))
-            .as("El INSERT fallido no debe dejar estado parcial").isEqualTo(1);
+        assertAll(
+            () -> assertThat(exception).as("El error SQL debe traducirse a DataIntegrityViolationException")
+                .isNotNull(),
+            () -> assertThat(rowCountOf(validId)).as("La búsqueda previa debe seguir intacta").isEqualTo(1),
+            () -> assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM hotel_search", Integer.class))
+                .as("El INSERT fallido no debe dejar estado parcial").isEqualTo(1));
     }
 
     /**

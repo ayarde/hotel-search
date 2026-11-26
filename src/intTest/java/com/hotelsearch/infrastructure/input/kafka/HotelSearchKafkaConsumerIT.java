@@ -1,6 +1,7 @@
 package com.hotelsearch.infrastructure.input.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.awaitility.Awaitility.await;
 
 import com.hotelsearch.domain.model.HotelSearchEvent;
@@ -141,13 +142,14 @@ class HotelSearchKafkaConsumerIT {
         long offset = publish(event);
 
         // then
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
-            assertThat(rowCount(searchId)).as("El evento debe persistirse")
-                .isEqualTo(1));
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
-            assertThat(committedOffset()).as("El offset debe confirmarse tras el commit")
-                .hasValueSatisfying(value -> assertThat(value.offset())
-                    .isGreaterThanOrEqualTo(offset + 1)));
+        assertAll(
+            () -> await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
+                assertThat(rowCount(searchId)).as("El evento debe persistirse")
+                    .isEqualTo(1)),
+            () -> await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
+                assertThat(committedOffset()).as("El offset debe confirmarse tras el commit")
+                    .hasValueSatisfying(value -> assertThat(value.offset())
+                        .isGreaterThanOrEqualTo(offset + 1))));
     }
 
     /**
@@ -172,15 +174,16 @@ class HotelSearchKafkaConsumerIT {
         long secondOffset = publish(event);
 
         // then
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
-            assertThat(rowCount(searchId)).as("El duplicado no debe crear otra fila")
-                .isEqualTo(1));
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
-            assertThat(committedOffset()).as("El segundo offset debe confirmarse")
-                .hasValueSatisfying(value -> assertThat(value.offset())
-                    .isGreaterThanOrEqualTo(secondOffset + 1)));
-        assertThat(secondOffset).as("La publicación debe avanzar el offset del topic")
-            .isGreaterThan(firstOffset);
+        assertAll(
+            () -> assertThat(secondOffset).as("La publicación debe avanzar el offset del topic")
+                .isGreaterThan(firstOffset),
+            () -> await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
+                assertThat(rowCount(searchId)).as("El duplicado no debe crear otra fila")
+                    .isEqualTo(1)),
+            () -> await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
+                assertThat(committedOffset()).as("El segundo offset debe confirmarse")
+                    .hasValueSatisfying(value -> assertThat(value.offset())
+                        .isGreaterThanOrEqualTo(secondOffset + 1))));
     }
 
     /**
@@ -321,22 +324,32 @@ class HotelSearchKafkaConsumerIT {
         Map<String, TopicDescription> descriptions = describeTopics();
 
         // then
-        assertThat(descriptions.get(MAIN_TOPIC).partitions()).as("El topic principal debe tener una partición")
-            .hasSize(1);
-        assertThat(descriptions.get(MAIN_TOPIC).partitions().getFirst().replicas())
-            .as("El topic principal debe tener una réplica")
-            .hasSize(1);
-        assertThat(descriptions.get(DLT_TOPIC).partitions()).as("El DLT debe tener una partición")
-            .hasSize(1);
-        assertThat(descriptions.get(DLT_TOPIC).partitions().getFirst().replicas())
-            .as("El DLT debe tener una réplica")
-            .hasSize(1);
-        assertThat(listenerRegistry.getListenerContainers()).as("Debe existir un único listener")
-            .hasSize(1);
-        assertThat(listenerRegistry.getListenerContainers().iterator().next()
-            .getContainerProperties().getTopics())
-            .contains(MAIN_TOPIC)
-            .doesNotContain(DLT_TOPIC);
+        // Cada grupo verifica primero el tamaño y después accede al primer
+        // elemento, así que esas dos aserciones quedan en orden dentro del grupo.
+        assertAll(
+            () -> {
+                assertThat(descriptions.get(MAIN_TOPIC).partitions())
+                    .as("El topic principal debe tener una partición")
+                    .hasSize(1);
+                assertThat(descriptions.get(MAIN_TOPIC).partitions().getFirst().replicas())
+                    .as("El topic principal debe tener una réplica")
+                    .hasSize(1);
+            },
+            () -> {
+                assertThat(descriptions.get(DLT_TOPIC).partitions()).as("El DLT debe tener una partición")
+                    .hasSize(1);
+                assertThat(descriptions.get(DLT_TOPIC).partitions().getFirst().replicas())
+                    .as("El DLT debe tener una réplica")
+                    .hasSize(1);
+            },
+            () -> {
+                assertThat(listenerRegistry.getListenerContainers()).as("Debe existir un único listener")
+                    .hasSize(1);
+                assertThat(listenerRegistry.getListenerContainers().iterator().next()
+                    .getContainerProperties().getTopics())
+                    .contains(MAIN_TOPIC)
+                    .doesNotContain(DLT_TOPIC);
+            });
     }
 
     // <editor-fold desc="Helpers">

@@ -2,6 +2,7 @@ package com.hotelsearch.infrastructure.config;
 
 import static com.hotelsearch.domain.model.HotelSearchEventFixtures.validEvent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -75,14 +76,15 @@ class KafkaProducerConfigTest {
                 // then
                 assertThat(context.getStartupFailure()).isNull();
                 var factory = context.getBean(DefaultKafkaProducerFactory.class);
-                assertThat(factory.getConfigurationProperties())
-                    .containsEntry(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-                    .containsEntry(ProducerConfig.ACKS_CONFIG, "all")
-                    .containsEntry(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
-                    .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "10000")
-                    .containsEntry(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "3000")
-                    .containsEntry(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-                assertThat(factory.getValueSerializer()).isInstanceOf(JacksonJsonSerializer.class);
+                assertAll(
+                    () -> assertThat(factory.getConfigurationProperties())
+                        .containsEntry(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+                        .containsEntry(ProducerConfig.ACKS_CONFIG, "all")
+                        .containsEntry(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
+                        .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "10000")
+                        .containsEntry(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "3000")
+                        .containsEntry(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class),
+                    () -> assertThat(factory.getValueSerializer()).isInstanceOf(JacksonJsonSerializer.class));
             });
     }
 

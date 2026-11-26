@@ -2,6 +2,7 @@ package com.hotelsearch.infrastructure.output.kafka;
 
 import static com.hotelsearch.domain.model.HotelSearchEventFixtures.validEvent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -78,12 +79,13 @@ class KafkaHotelSearchPublisherTest {
         ArgumentCaptor<ProducerRecord<String, Object>> captor =
             ArgumentCaptor.forClass(ProducerRecord.class);
         verify(template).send(captor.capture());
-        assertThat(captor.getValue().topic()).as("Debe publicarse en el topic configurado")
-            .isEqualTo(TOPIC);
-        assertThat(captor.getValue().key()).as("La key debe ser el searchId")
-            .isEqualTo(event.searchId().toString());
-        assertThat(captor.getValue().value()).as("El value debe ser el evento sin transformar")
-            .isSameAs(event);
+        assertAll(
+            () -> assertThat(captor.getValue().topic()).as("Debe publicarse en el topic configurado")
+                .isEqualTo(TOPIC),
+            () -> assertThat(captor.getValue().key()).as("La key debe ser el searchId")
+                .isEqualTo(event.searchId().toString()),
+            () -> assertThat(captor.getValue().value()).as("El value debe ser el evento sin transformar")
+                .isSameAs(event));
     }
 
     /**
@@ -130,9 +132,10 @@ class KafkaHotelSearchPublisherTest {
         var header = captor.getValue().headers().lastHeader(CorrelationContext.SEARCH_ID);
         assertThat(header).as("El evento debe propagar el searchId")
             .isNotNull();
-        assertThat(new String(header.value(), StandardCharsets.UTF_8))
-            .isEqualTo(event.searchId().toString());
-        assertThat(MDC.getCopyOfContextMap()).isNull();
+        assertAll(
+            () -> assertThat(new String(header.value(), StandardCharsets.UTF_8))
+                .isEqualTo(event.searchId().toString()),
+            () -> assertThat(MDC.getCopyOfContextMap()).isNull());
     }
 
     /**
@@ -284,12 +287,13 @@ class KafkaHotelSearchPublisherTest {
             () -> publisher.publish(validEvent()));
 
         // then
-        assertThat(exception).hasMessage("Publicación interrumpida");
-        assertThat(exception.getCause()).isSameAs(interruption);
-        assertThat(Thread.currentThread().isInterrupted())
-            .as("El publisher debe restablecer el flag de interrupción")
-            .isTrue();
-        assertThat(MDC.getCopyOfContextMap()).isNullOrEmpty();
+        assertAll(
+            () -> assertThat(exception).hasMessage("Publicación interrumpida"),
+            () -> assertThat(exception.getCause()).isSameAs(interruption),
+            () -> assertThat(Thread.currentThread().isInterrupted())
+                .as("El publisher debe restablecer el flag de interrupción")
+                .isTrue(),
+            () -> assertThat(MDC.getCopyOfContextMap()).isNullOrEmpty());
     }
 
     /**
@@ -330,12 +334,11 @@ class KafkaHotelSearchPublisherTest {
         assertThat(appender.list)
             .as("Debe registrarse un único evento DEBUG con la metadata del broker")
             .singleElement()
-            .satisfies(logged -> {
-                assertThat(logged.getLevel()).isEqualTo(Level.DEBUG);
-                assertThat(logged.getFormattedMessage()).isEqualTo(
+            .satisfies(logged -> assertAll(
+                () -> assertThat(logged.getLevel()).isEqualTo(Level.DEBUG),
+                () -> assertThat(logged.getFormattedMessage()).isEqualTo(
                     "Evento publicado: topic=" + TOPIC + ", partition=0, offset=12, key="
-                        + event.searchId());
-            });
+                        + event.searchId())));
     }
 
     /**

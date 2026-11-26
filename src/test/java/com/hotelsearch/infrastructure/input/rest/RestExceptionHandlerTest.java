@@ -55,11 +55,12 @@ class RestExceptionHandlerTest {
         var response = handler.handleMethodArgumentNotValid(exception, request);
 
         // then
-        assertThat(response.getStatusCode().value()).isEqualTo(400);
         Map<?, ?> errors = (Map<?, ?>) response.getBody().getProperties().get("errors");
-        assertThat(errors.get("hotelId")).isEqualTo(List.of("hotelId inválido"));
-        assertThat(errors.get("checkOut")).isEqualTo(List.of("valor inválido"));
-        assertThat(errors.get("_global")).isEqualTo(List.of("Error global"));
+        assertAll(
+            () -> assertThat(response.getStatusCode().value()).isEqualTo(400),
+            () -> assertThat(errors.get("hotelId")).isEqualTo(List.of("hotelId inválido")),
+            () -> assertThat(errors.get("checkOut")).isEqualTo(List.of("valor inválido")),
+            () -> assertThat(errors.get("_global")).isEqualTo(List.of("Error global")));
     }
 
     /**

@@ -2,6 +2,7 @@ package com.hotelsearch.domain.valueobject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -30,11 +31,12 @@ class SearchIdTest {
         SearchId id2 = SearchId.generate();
 
         // then
-        assertThat(id1).as("Los searchId generados deben ser distintos").isNotEqualTo(id2);
-        assertThat(isV4(id1.value())).as("El primer searchId debe ser UUIDv4").isTrue();
-        assertThat(isV4(id2.value())).as("El segundo searchId debe ser UUIDv4").isTrue();
-        assertThat(id1.toString()).as("El searchId debe tener 36 caracteres").hasSize(36);
-        assertThat(id2.toString()).as("El searchId debe tener 36 caracteres").hasSize(36);
+        assertAll(
+            () -> assertThat(id1).as("Los searchId generados deben ser distintos").isNotEqualTo(id2),
+            () -> assertThat(isV4(id1.value())).as("El primer searchId debe ser UUIDv4").isTrue(),
+            () -> assertThat(isV4(id2.value())).as("El segundo searchId debe ser UUIDv4").isTrue(),
+            () -> assertThat(id1.toString()).as("El searchId debe tener 36 caracteres").hasSize(36),
+            () -> assertThat(id2.toString()).as("El searchId debe tener 36 caracteres").hasSize(36));
     }
 
     /**
@@ -76,15 +78,16 @@ class SearchIdTest {
         // sin preparación previa
 
         // when / then
-        assertThatThrownBy(() -> SearchId.of((String) null))
-            .as("El searchId nulo debe ser rechazado")
-            .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> SearchId.of(""))
-            .as("El searchId vacío debe ser rechazado")
-            .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> SearchId.of("   "))
-            .as("El searchId con solo espacios debe ser rechazado")
-            .isInstanceOf(IllegalArgumentException.class);
+        assertAll(
+            () -> assertThatThrownBy(() -> SearchId.of((String) null))
+                .as("El searchId nulo debe ser rechazado")
+                .isInstanceOf(IllegalArgumentException.class),
+            () -> assertThatThrownBy(() -> SearchId.of(""))
+                .as("El searchId vacío debe ser rechazado")
+                .isInstanceOf(IllegalArgumentException.class),
+            () -> assertThatThrownBy(() -> SearchId.of("   "))
+                .as("El searchId con solo espacios debe ser rechazado")
+                .isInstanceOf(IllegalArgumentException.class));
     }
 
     /**

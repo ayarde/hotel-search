@@ -1,6 +1,7 @@
 package com.hotelsearch.infrastructure.output.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.hotelsearch.infrastructure.observability.CorrelationContext;
@@ -113,11 +114,14 @@ class KafkaHotelSearchPublisherIT {
         // then - consumir con consumer directo para verificar payload
         var receivedEvent = consumeEvent(searchId);
         assertThat(receivedEvent).as("Debe recibir el mensaje publicado").isNotNull();
-        assertThat(receivedEvent.searchId()).as("Key/searchId debe coincidir").isEqualTo(searchId);
-        assertThat(receivedEvent.hotelId()).as("HotelId debe coincidir").isEqualTo(event.hotelId());
-        assertThat(receivedEvent.checkIn()).as("CheckIn debe coincidir").isEqualTo(event.checkIn());
-        assertThat(receivedEvent.checkOut()).as("CheckOut debe coincidir").isEqualTo(event.checkOut());
-        assertThat(receivedEvent.ages().values()).as("Edades deben coincidir en orden").containsExactly(29, 28, 4, 3);
+        assertAll(
+            () -> assertThat(receivedEvent.searchId()).as("Key/searchId debe coincidir").isEqualTo(searchId),
+            () -> assertThat(receivedEvent.hotelId()).as("HotelId debe coincidir").isEqualTo(event.hotelId()),
+            () -> assertThat(receivedEvent.checkIn()).as("CheckIn debe coincidir").isEqualTo(event.checkIn()),
+            () -> assertThat(receivedEvent.checkOut()).as("CheckOut debe coincidir")
+                .isEqualTo(event.checkOut()),
+            () -> assertThat(receivedEvent.ages().values()).as("Edades deben coincidir en orden")
+                .containsExactly(29, 28, 4, 3));
     }
 
     /**
@@ -175,11 +179,12 @@ class KafkaHotelSearchPublisherIT {
         var searchIdHeader = record.headers().lastHeader(CorrelationContext.SEARCH_ID);
         assertThat(searchIdHeader).as("El searchId debe viajar en un header")
             .isNotNull();
-        assertThat(new String(searchIdHeader.value(), StandardCharsets.UTF_8))
-            .isEqualTo(searchId.toString());
-        assertThat(record.headers().lastHeader("traceparent"))
-            .as("El contexto de tracing debe propagarse a Kafka")
-            .isNotNull();
+        assertAll(
+            () -> assertThat(new String(searchIdHeader.value(), StandardCharsets.UTF_8))
+                .isEqualTo(searchId.toString()),
+            () -> assertThat(record.headers().lastHeader("traceparent"))
+                .as("El contexto de tracing debe propagarse a Kafka")
+                .isNotNull());
     }
 
     /**
@@ -219,19 +224,20 @@ class KafkaHotelSearchPublisherIT {
             .orElseThrow(() -> new AssertionError("No se capturó el log estructurado esperado"));
         var mapper = JsonMapper.builder().findAndAddModules().build();
         var json = mapper.readValue(jsonLine, tools.jackson.databind.JsonNode.class);
-        assertThat(json.get("timestamp").asString()).isNotBlank();
-        assertThat(json.get("level").asString()).isEqualTo("INFO");
-        assertThat(json.get("logger").asString())
-            .isEqualTo(KafkaHotelSearchPublisherIT.class.getName());
-        assertThat(json.get("searchId").asString()).isEqualTo(searchId);
-        assertThat(json.get("component").asString())
-            .isEqualTo(CorrelationContext.KAFKA_PRODUCER_COMPONENT);
-        assertThat(json.get("traceId").asString()).isNotBlank();
-        assertThat(json.get("spanId").asString()).isNotBlank();
-        assertThat(json.has("ages"))
-            .as("El log no debe contener el payload de la búsqueda")
-            .isFalse();
-        assertThat(org.slf4j.MDC.getCopyOfContextMap()).isNullOrEmpty();
+        assertAll(
+            () -> assertThat(json.get("timestamp").asString()).isNotBlank(),
+            () -> assertThat(json.get("level").asString()).isEqualTo("INFO"),
+            () -> assertThat(json.get("logger").asString())
+                .isEqualTo(KafkaHotelSearchPublisherIT.class.getName()),
+            () -> assertThat(json.get("searchId").asString()).isEqualTo(searchId),
+            () -> assertThat(json.get("component").asString())
+                .isEqualTo(CorrelationContext.KAFKA_PRODUCER_COMPONENT),
+            () -> assertThat(json.get("traceId").asString()).isNotBlank(),
+            () -> assertThat(json.get("spanId").asString()).isNotBlank(),
+            () -> assertThat(json.has("ages"))
+                .as("El log no debe contener el payload de la búsqueda")
+                .isFalse(),
+            () -> assertThat(org.slf4j.MDC.getCopyOfContextMap()).isNullOrEmpty());
     }
 
     /**

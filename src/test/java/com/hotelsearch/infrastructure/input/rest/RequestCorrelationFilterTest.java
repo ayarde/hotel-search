@@ -1,6 +1,7 @@
 package com.hotelsearch.infrastructure.input.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.hotelsearch.infrastructure.observability.CorrelationContext;
@@ -45,21 +46,22 @@ class RequestCorrelationFilterTest {
                 contextDuringRequest.set(MDC.getCopyOfContextMap()));
 
             // then
-            assertThat(contextDuringRequest.get())
-                .as("El request debe incluir la correlación de la capa REST")
-                .containsEntry(CorrelationContext.COMPONENT, CorrelationContext.REST_COMPONENT)
-                .containsEntry(CorrelationContext.TRACE_ID, "trace-parent")
-                .doesNotContainKey(CorrelationContext.SEARCH_ID);
-            assertThat(contextDuringRequest.get().get(CorrelationContext.REQUEST_ID))
-                .as("Cada request debe recibir un requestId")
-                .isNotBlank();
-            assertThat(MDC.getCopyOfContextMap())
-                .as("El filtro debe restaurar el contexto previo")
-                .containsEntry(CorrelationContext.TRACE_ID, "trace-parent")
-                .doesNotContainKeys(
-                    CorrelationContext.COMPONENT,
-                    CorrelationContext.REQUEST_ID,
-                    CorrelationContext.SEARCH_ID);
+            assertAll(
+                () -> assertThat(contextDuringRequest.get())
+                    .as("El request debe incluir la correlación de la capa REST")
+                    .containsEntry(CorrelationContext.COMPONENT, CorrelationContext.REST_COMPONENT)
+                    .containsEntry(CorrelationContext.TRACE_ID, "trace-parent")
+                    .doesNotContainKey(CorrelationContext.SEARCH_ID),
+                () -> assertThat(contextDuringRequest.get().get(CorrelationContext.REQUEST_ID))
+                    .as("Cada request debe recibir un requestId")
+                    .isNotBlank(),
+                () -> assertThat(MDC.getCopyOfContextMap())
+                    .as("El filtro debe restaurar el contexto previo")
+                    .containsEntry(CorrelationContext.TRACE_ID, "trace-parent")
+                    .doesNotContainKeys(
+                        CorrelationContext.COMPONENT,
+                        CorrelationContext.REQUEST_ID,
+                        CorrelationContext.SEARCH_ID));
         } finally {
             MDC.clear();
         }

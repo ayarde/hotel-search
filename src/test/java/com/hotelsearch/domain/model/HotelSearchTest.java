@@ -2,6 +2,7 @@ package com.hotelsearch.domain.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -38,13 +39,15 @@ class HotelSearchTest {
         HotelSearch search = new HotelSearch(id, hotel, checkIn, checkOut, ages);
 
         // then
-        assertThat(search.searchId()).as("El searchId debe ser el asignado").isEqualTo(id);
-        assertThat(search.hotelId()).as("El hotelId debe ser el asignado").isEqualTo(hotel);
-        assertThat(search.checkIn()).as("El checkIn debe ser el asignado").isEqualTo(checkIn);
-        assertThat(search.checkOut()).as("El checkOut debe ser el asignado").isEqualTo(checkOut);
-        assertThat(search.ages().values()).as("Las edades deben conservar el orden")
-            .containsExactly(29, 28, 4, 3);
-        assertThat(search.ages().values().size()).as("El tamaño de las edades debe ser 4").isEqualTo(4);
+        assertAll(
+            () -> assertThat(search.searchId()).as("El searchId debe ser el asignado").isEqualTo(id),
+            () -> assertThat(search.hotelId()).as("El hotelId debe ser el asignado").isEqualTo(hotel),
+            () -> assertThat(search.checkIn()).as("El checkIn debe ser el asignado").isEqualTo(checkIn),
+            () -> assertThat(search.checkOut()).as("El checkOut debe ser el asignado").isEqualTo(checkOut),
+            () -> assertThat(search.ages().values()).as("Las edades deben conservar el orden")
+                .containsExactly(29, 28, 4, 3),
+            () -> assertThat(search.ages().values().size()).as("El tamaño de las edades debe ser 4")
+                .isEqualTo(4));
     }
 
     /**
@@ -66,21 +69,22 @@ class HotelSearchTest {
         Ages ages = Ages.of(List.of(29, 28, 4, 3));
 
         // when / then
-        assertThatThrownBy(() -> new HotelSearch(null, hotel, checkIn, checkOut, ages))
-            .as("Un searchId nulo debe ser rechazado")
-            .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), null, checkIn, checkOut, ages))
-            .as("Un hotelId nulo debe ser rechazado")
-            .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), hotel, null, checkOut, ages))
-            .as("Un checkIn nulo debe ser rechazado")
-            .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), hotel, checkIn, null, ages))
-            .as("Un checkOut nulo debe ser rechazado")
-            .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), hotel, checkIn, checkOut, null))
-            .as("Un ages nulo debe ser rechazado")
-            .isInstanceOf(NullPointerException.class);
+        assertAll(
+            () -> assertThatThrownBy(() -> new HotelSearch(null, hotel, checkIn, checkOut, ages))
+                .as("Un searchId nulo debe ser rechazado")
+                .isInstanceOf(NullPointerException.class),
+            () -> assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), null, checkIn, checkOut, ages))
+                .as("Un hotelId nulo debe ser rechazado")
+                .isInstanceOf(NullPointerException.class),
+            () -> assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), hotel, null, checkOut, ages))
+                .as("Un checkIn nulo debe ser rechazado")
+                .isInstanceOf(NullPointerException.class),
+            () -> assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), hotel, checkIn, null, ages))
+                .as("Un checkOut nulo debe ser rechazado")
+                .isInstanceOf(NullPointerException.class),
+            () -> assertThatThrownBy(() -> new HotelSearch(SearchId.generate(), hotel, checkIn, checkOut, null))
+                .as("Un ages nulo debe ser rechazado")
+                .isInstanceOf(NullPointerException.class));
     }
 
     /**

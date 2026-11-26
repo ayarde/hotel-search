@@ -1,6 +1,7 @@
 package com.hotelsearch.infrastructure.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.zaxxer.hikari.HikariDataSource;
 import java.util.Map;
@@ -52,34 +53,11 @@ class OperationalConfigurationTest {
             .run(context -> {
                 // then
                 assertThat(context.getStartupFailure()).isNull();
-                assertThat(context.getEnvironment().getProperty(
-                    "spring.threads.virtual.enabled", Boolean.class)).isTrue();
-                assertThat(context.getEnvironment().getProperty(
-                    "logging.structured.format.console")).isEqualTo("logstash");
-                Map<String, String> renamedFields = Binder.get(context.getEnvironment())
+                var environment = context.getEnvironment();
+                Map<String, String> renamedFields = Binder.get(environment)
                     .bind("logging.structured.json.rename", Map.class)
                     .get();
-                assertThat(renamedFields)
-                    .containsEntry("@timestamp", "timestamp")
-                    .containsEntry("logger_name", "logger");
-                assertThat(context.getEnvironment().getProperty(
-                    "server.shutdown")).isEqualTo("graceful");
-                assertThat(context.getEnvironment().getProperty(
-                    "spring.lifecycle.timeout-per-shutdown-phase"))
-                    .isEqualTo("17s");
-                assertThat(context.getEnvironment().getProperty(
-                    "spring.kafka.producer.delivery-timeout-ms", Integer.class)).isEqualTo(4321);
-                assertThat(context.getEnvironment().getProperty(
-                    "spring.kafka.producer.request-timeout-ms", Integer.class)).isEqualTo(2345);
-                assertThat(context.getEnvironment().getProperty(
-                    "spring.kafka.template.observation-enabled", Boolean.class)).isTrue();
-                assertThat(context.getEnvironment().getProperty(
-                    "spring.kafka.listener.observation-enabled", Boolean.class)).isTrue();
-
                 var dataSource = context.getBean(HikariDataSource.class);
-                assertThat(dataSource.getMaximumPoolSize())
-                    .as("El pool JDBC debe respetar la configuración externa")
-                    .isEqualTo(7);
 
                 CountDownLatch executed = new CountDownLatch(1);
                 AtomicReference<Thread> worker = new AtomicReference<>();
@@ -92,9 +70,33 @@ class OperationalConfigurationTest {
                 assertThat(executed.await(5, TimeUnit.SECONDS))
                     .as("El executor debe iniciar la tarea")
                     .isTrue();
-                assertThat(worker.get().isVirtual())
-                    .as("La tarea de la aplicación debe ejecutarse en un Virtual Thread")
-                    .isTrue();
+                assertAll(
+                    () -> assertThat(environment.getProperty(
+                        "spring.threads.virtual.enabled", Boolean.class)).isTrue(),
+                    () -> assertThat(environment.getProperty(
+                        "logging.structured.format.console")).isEqualTo("logstash"),
+                    () -> assertThat(renamedFields)
+                        .containsEntry("@timestamp", "timestamp")
+                        .containsEntry("logger_name", "logger"),
+                    () -> assertThat(environment.getProperty(
+                        "server.shutdown")).isEqualTo("graceful"),
+                    () -> assertThat(environment.getProperty(
+                        "spring.lifecycle.timeout-per-shutdown-phase"))
+                        .isEqualTo("17s"),
+                    () -> assertThat(environment.getProperty(
+                        "spring.kafka.producer.delivery-timeout-ms", Integer.class)).isEqualTo(4321),
+                    () -> assertThat(environment.getProperty(
+                        "spring.kafka.producer.request-timeout-ms", Integer.class)).isEqualTo(2345),
+                    () -> assertThat(environment.getProperty(
+                        "spring.kafka.template.observation-enabled", Boolean.class)).isTrue(),
+                    () -> assertThat(environment.getProperty(
+                        "spring.kafka.listener.observation-enabled", Boolean.class)).isTrue(),
+                    () -> assertThat(dataSource.getMaximumPoolSize())
+                        .as("El pool JDBC debe respetar la configuración externa")
+                        .isEqualTo(7),
+                    () -> assertThat(worker.get().isVirtual())
+                        .as("La tarea de la aplicación debe ejecutarse en un Virtual Thread")
+                        .isTrue());
             });
     }
 

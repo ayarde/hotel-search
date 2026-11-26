@@ -2,6 +2,7 @@ package com.hotelsearch.infrastructure.input.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,19 +47,20 @@ class HotelSearchEventMapperTest {
         var search = mapper.toHotelSearch(event);
 
         // then
-        assertThat(search.searchId()).as("El searchId debe conservarse").isEqualTo(searchId);
-        assertThat(search.hotelId().value().toString())
-            .as("El hotelId debe conservarse")
-            .isEqualTo("550e8400-e29b-41d4-a716-446655440000");
-        assertThat(search.checkIn().value()).as("El checkIn debe conservarse")
-            .isEqualTo(LocalDate.of(2026, 11, 10));
-        assertThat(search.checkOut().value()).as("El checkOut debe conservarse")
-            .isEqualTo(LocalDate.of(2026, 11, 29));
-        assertThat(search.ages().values()).as("Las edades deben conservar el orden")
-            .containsExactly(29, 28, 4, 3);
-        assertThatThrownBy(() -> search.ages().values().add(50))
-            .as("Las edades deben quedar defensivamente copiadas")
-            .isInstanceOf(UnsupportedOperationException.class);
+        assertAll(
+            () -> assertThat(search.searchId()).as("El searchId debe conservarse").isEqualTo(searchId),
+            () -> assertThat(search.hotelId().value().toString())
+                .as("El hotelId debe conservarse")
+                .isEqualTo("550e8400-e29b-41d4-a716-446655440000"),
+            () -> assertThat(search.checkIn().value()).as("El checkIn debe conservarse")
+                .isEqualTo(LocalDate.of(2026, 11, 10)),
+            () -> assertThat(search.checkOut().value()).as("El checkOut debe conservarse")
+                .isEqualTo(LocalDate.of(2026, 11, 29)),
+            () -> assertThat(search.ages().values()).as("Las edades deben conservar el orden")
+                .containsExactly(29, 28, 4, 3),
+            () -> assertThatThrownBy(() -> search.ages().values().add(50))
+                .as("Las edades deben quedar defensivamente copiadas")
+                .isInstanceOf(UnsupportedOperationException.class));
     }
 
     /**

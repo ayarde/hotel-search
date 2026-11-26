@@ -333,6 +333,31 @@ la búsqueda y su cantidad de equivalentes.
   exclusiones reducidas: `LINE` 95,0 % (419/441) y `BRANCH` 91,7 % (88/96).
   Sin exclusiones: `LINE` 91,3 % (420/460) y `BRANCH` 91,7 % (88/96).
 
+### Fase 14 — Agrupar aserciones con `assertAll`
+
+- Rama: `test/fase-14-assertall`.
+- Relevamiento: un script cuenta, por método de test, las llamadas
+  `assert*` y `assertThat` que quedan fuera de un `assertAll`. No cuenta los
+  `verify` de Mockito ni el `assertThrows` cuyo resultado se guarda, porque
+  ese es el paso `when` y las aserciones siguientes dependen de él.
+- Antes: 35 de 161 métodos tenían más de 2 aserciones sueltas (28 unit y
+  7 integration). Después: 0 de 161.
+- Las guardas de dependencia quedan delante del grupo: el `isNotNull` del
+  `searchId` y del evento publicado en `SubmitHotelSearchTest`, el
+  `getStartupFailure()` de los context tests, el `executed.await` antes de
+  leer el hilo, el `isPresent` antes de `Optional.get()` y los headers antes
+  de leer su valor. En `HotelSearchKafkaConsumerIT` cada tamaño y el acceso
+  al primer elemento que protege comparten una misma lambda del
+  `assertAll`, para que se ejecuten en orden.
+- Las esperas con Awaitility se agrupan como ejecutables del `assertAll`; se
+  siguen evaluando en el mismo orden.
+- Validación: `./gradlew clean build -PintegrationTest=true` en verde con
+  148 unit tests y 24 integration tests, sin fallos ni tests omitidos. PMD
+  sigue en 0 hallazgos. JaCoCo con exclusiones reducidas queda igual que
+  en la validación final de la Fase 13, después de las correcciones de la
+  revisión: `LINE` 95,5 % (421/441) y `BRANCH` 91,7 % (88/96). El 95,0 %
+  (419/441) que figura arriba es la medición anterior a esas correcciones.
+
 ## Validaciones actuales
 
 Comandos ejecutados después de implementar la Fase 9, tanto en el working

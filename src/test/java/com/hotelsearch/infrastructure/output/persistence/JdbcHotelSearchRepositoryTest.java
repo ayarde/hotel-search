@@ -3,6 +3,7 @@ package com.hotelsearch.infrastructure.output.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -156,8 +157,9 @@ class JdbcHotelSearchRepositoryTest {
 
         // then
         assertThat(result).isPresent();
-        assertThat(result.get().search()).isEqualTo(expected.search());
-        assertThat(result.get().equivalentsCount()).isEqualTo(2);
+        assertAll(
+            () -> assertThat(result.get().search()).isEqualTo(expected.search()),
+            () -> assertThat(result.get().equivalentsCount()).isEqualTo(2));
     }
 
     /**

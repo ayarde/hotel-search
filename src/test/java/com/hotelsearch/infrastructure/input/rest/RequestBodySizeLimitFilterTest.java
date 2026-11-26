@@ -1,6 +1,7 @@
 package com.hotelsearch.infrastructure.input.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -100,9 +101,10 @@ class RequestBodySizeLimitFilterTest {
         filter.doFilter(request, response, chain);
 
         // then
-        assertThat(response.getStatus()).isEqualTo(400);
-        assertThat(response.getErrorMessage()).contains("16384 bytes");
-        assertThat(chain.getRequest()).isNull();
+        assertAll(
+            () -> assertThat(response.getStatus()).isEqualTo(400),
+            () -> assertThat(response.getErrorMessage()).contains("16384 bytes"),
+            () -> assertThat(chain.getRequest()).isNull());
     }
 
     /**
@@ -137,9 +139,11 @@ class RequestBodySizeLimitFilterTest {
             () -> filter.doFilter(request, response, chain));
 
         // then
-        assertThat(exception).hasMessage("No se pudo generar la respuesta para un body demasiado grande");
-        assertThat(exception.getCause()).isSameAs(failure);
-        assertThat(chain.getRequest()).isNull();
+        assertAll(
+            () -> assertThat(exception)
+                .hasMessage("No se pudo generar la respuesta para un body demasiado grande"),
+            () -> assertThat(exception.getCause()).isSameAs(failure),
+            () -> assertThat(chain.getRequest()).isNull());
     }
 
     /**

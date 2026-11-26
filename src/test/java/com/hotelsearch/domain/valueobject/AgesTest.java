@@ -2,6 +2,7 @@ package com.hotelsearch.domain.valueobject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -165,14 +166,15 @@ class AgesTest {
         source.set(0, 50);
 
         // then
-        assertThat(ages.values()).as("La lista original no debe modificar el value object")
-            .containsExactly(29, 28, 4, 3);
-        assertThatThrownBy(() -> ages.values().add(5))
-            .as("La lista de edades debe ser inmutable")
-            .isInstanceOf(java.lang.UnsupportedOperationException.class);
-        assertThatThrownBy(() -> ages.values().clear())
-            .as("La lista de edades no debe permitir limpiarse")
-            .isInstanceOf(java.lang.UnsupportedOperationException.class);
+        assertAll(
+            () -> assertThat(ages.values()).as("La lista original no debe modificar el value object")
+                .containsExactly(29, 28, 4, 3),
+            () -> assertThatThrownBy(() -> ages.values().add(5))
+                .as("La lista de edades debe ser inmutable")
+                .isInstanceOf(java.lang.UnsupportedOperationException.class),
+            () -> assertThatThrownBy(() -> ages.values().clear())
+                .as("La lista de edades no debe permitir limpiarse")
+                .isInstanceOf(java.lang.UnsupportedOperationException.class));
     }
 
     /**

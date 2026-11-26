@@ -2,6 +2,7 @@ package com.hotelsearch.infrastructure.config;
 
 import static com.hotelsearch.domain.model.HotelSearchEventFixtures.validEvent;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -249,12 +250,13 @@ class KafkaConsumerConfigTest {
             config.hotelSearchConsumerFactory(properties, JsonMapper.builder().build());
 
         // then
-        assertThat(factory.getConfigurationProperties())
-            .as("El consumer debe usar las propiedades de Spring Boot")
-            .containsEntry(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, List.of("kafka:29092"))
-            .containsEntry(ConsumerConfig.GROUP_ID_CONFIG, "hotel-search-consumer");
-        assertThat(factory.getKeyDeserializer()).isInstanceOf(StringDeserializer.class);
-        assertThat(factory.getValueDeserializer()).isInstanceOf(ErrorHandlingDeserializer.class);
+        assertAll(
+            () -> assertThat(factory.getConfigurationProperties())
+                .as("El consumer debe usar las propiedades de Spring Boot")
+                .containsEntry(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, List.of("kafka:29092"))
+                .containsEntry(ConsumerConfig.GROUP_ID_CONFIG, "hotel-search-consumer"),
+            () -> assertThat(factory.getKeyDeserializer()).isInstanceOf(StringDeserializer.class),
+            () -> assertThat(factory.getValueDeserializer()).isInstanceOf(ErrorHandlingDeserializer.class));
     }
 
     /**
