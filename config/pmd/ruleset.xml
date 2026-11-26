@@ -8,6 +8,8 @@
         Reglas PMD de Hotel Search. Se incluyen las ocho categorías de Java
         completas. Solo se excluyen reglas puntuales, cada una con su motivo,
         y algunas se ajustan por propiedades en lugar de desactivarse.
+        ruleset-test.xml parte de este archivo, así que todo cambio acá
+        también se aplica a los tests.
     </description>
 
     <!-- Convención: una regla que se excluye de su categoría y se vuelve a
@@ -16,6 +18,7 @@
          regla, por eso se la excluye y se la declara aparte con sus
          propiedades. -->
 
+    <!-- ===================== bestpractices ===================== -->
     <rule ref="category/java/bestpractices.xml">
         <!-- Marca cualquier interfaz con un solo método abstracto, como los
              puertos (HotelSearchRepository.save). Que hoy tengan un método no
@@ -37,6 +40,7 @@
         </properties>
     </rule>
 
+    <!-- ===================== codestyle ===================== -->
     <rule ref="category/java/codestyle.xml">
         <!-- El proyecto no marca parámetros ni variables locales como final.
              El compilador ya exige que sean efectivamente finales donde importa
@@ -79,6 +83,7 @@
         </properties>
     </rule>
 
+    <!-- ===================== design ===================== -->
     <rule ref="category/java/design.xml">
         <!-- Marca el uso normal de APIs de terceros (KafkaProperties,
              SendResult, HttpServletRequest) y no detecta acoplamiento real. -->
@@ -88,6 +93,7 @@
         <exclude name="LoosePackageCoupling"/>
     </rule>
 
+    <!-- ===================== documentation ===================== -->
     <!-- CommentRequired y CommentSize se configuran abajo. -->
     <rule ref="category/java/documentation.xml">
         <exclude name="CommentRequired"/>
@@ -113,6 +119,7 @@
         </properties>
     </rule>
 
+    <!-- ===================== errorprone ===================== -->
     <rule ref="category/java/errorprone.xml">
         <!-- EmptyCatchBlock y AvoidDuplicateLiterals se configuran abajo. -->
         <exclude name="EmptyCatchBlock"/>
@@ -143,6 +150,7 @@
         </properties>
     </rule>
 
+    <!-- ===================== resto de categorías ===================== -->
     <rule ref="category/java/multithreading.xml">
         <!-- Regla de J2EE: prohíbe cualquier uso de hilos. En Spring Boot los
              executors (incluidos los de hilos virtuales) son la forma correcta

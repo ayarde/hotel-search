@@ -428,19 +428,23 @@ PMD analiza el código de producción con el ruleset
 analiza el código, sin levantar containers, y no depende de
 `-PintegrationTest=true`. Cada tarea falla si hay más de 10 hallazgos.
 
-Los dos rulesets incluyen las ocho categorías de reglas Java de PMD; las
-pocas reglas excluidas o ajustadas tienen el motivo escrito junto a la
-exclusión, y cada `@SuppressWarnings("PMD...")` del código lleva un
-comentario que lo justifica. El de tests agrega reglas propias para
-`TESTING_RULES.md`: el formato `method_State` en los nombres de test, los
-helpers privados al final de la clase y las imágenes de Testcontainers con
-versión fijada.
+`ruleset.xml` incluye las ocho categorías de reglas Java de PMD; las pocas
+reglas excluidas o ajustadas tienen el motivo escrito junto a la exclusión,
+y cada `@SuppressWarnings("PMD...")` del código lleva un comentario que lo
+justifica. `ruleset-test.xml` parte de `ruleset.xml` completo, así que un
+cambio en el principal también alcanza a los tests. Solo excluye lo que en
+tests es ruido y agrega reglas propias para `TESTING_RULES.md`: el formato
+`method_State` en los nombres de test, los helpers privados al final de la
+clase y las imágenes de Testcontainers con versión fijada.
 
 `check` también ejecuta `verifyPmdTestRules`, que analiza los fixtures de
 `config/pmd/fixtures` (no se compilan) con `ruleset-test.xml` y comprueba
 que `TestHelpersAtEnd` y `PinnedContainerImage` sigan marcando lo esperado.
 Así, una actualización de PMD o un cambio en el XPath no puede desactivar en
-silencio esas reglas.
+silencio esas reglas. Cada línea que una regla debe marcar termina con un
+comentario `// expect: <regla>` en el fixture; la tarea toma de ahí lo
+esperado y falla si una línea marcada no viola, si aparece un hallazgo sin
+marca o si una de las dos reglas se queda sin ninguna marca.
 
 Reportes: `build/reports/pmd/main.html`, `test.html` e `intTest.html`.
 

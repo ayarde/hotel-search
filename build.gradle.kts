@@ -116,9 +116,8 @@ val intTest =
 // pmdIntTest solo analiza el código, no levanta containers, así que corre
 // siempre, sin -PintegrationTest=true. Cada tarea falla si PMD informa más de
 // 10 hallazgos: ese es el máximo que fija CORRECTIONS-PLAN.md, no un
-// objetivo. Hoy hay 0 hallazgos, y los reportes (build/reports/pmd/) listan
-// cualquier hallazgo nuevo aunque el build siga pasando, así que conviene
-// revisarlos.
+// objetivo. Los reportes (build/reports/pmd/) listan cualquier hallazgo nuevo
+// aunque el build siga pasando, así que conviene revisarlos.
 pmd {
     toolVersion = libs.versions.pmd.get()
     sourceSets = listOf(project.sourceSets.main.get(), project.sourceSets.test.get(), intTest)
@@ -128,8 +127,22 @@ pmd {
     isConsoleOutput = true
 }
 
-tasks.named<Pmd>("pmdTest") { ruleSetFiles = files("config/pmd/ruleset-test.xml") }
-tasks.named<Pmd>("pmdIntTest") { ruleSetFiles = files("config/pmd/ruleset-test.xml") }
+// ruleset-test.xml referencia a ruleset.xml, pero Gradle solo registra como
+// input los archivos de ruleSetFiles. Sin declarar ruleset.xml, un cambio en
+// él dejaría pmdTest y pmdIntTest como up-to-date con un resultado viejo. No
+// se lo agrega a ruleSetFiles porque PMD cargaría las dos reglas por separado
+// y volvería a activar lo que ruleset-test.xml excluye.
+val pmdTestRuleSet = file("config/pmd/ruleset-test.xml")
+val pmdBaseRuleSet = file("config/pmd/ruleset.xml")
+
+tasks.named<Pmd>("pmdTest") {
+    ruleSetFiles = files(pmdTestRuleSet)
+    inputs.file(pmdBaseRuleSet).withPropertyName("baseRuleSet")
+}
+tasks.named<Pmd>("pmdIntTest") {
+    ruleSetFiles = files(pmdTestRuleSet)
+    inputs.file(pmdBaseRuleSet).withPropertyName("baseRuleSet")
+}
 
 configurations {
     named("intTestImplementation") {
@@ -256,14 +269,19 @@ val verifyCvePinnedVersions =
 // edita la consulta, la regla puede dejar de marcar nada y pmdTest seguiría
 // en verde. Esta verificación analiza los fixtures de config/pmd/fixtures
 // (no se compilan ni pertenecen a ningún source set) con ruleset-test.xml y
-// compara las líneas marcadas contra las esperadas. El classpath de intTest
+// compara las líneas marcadas contra las esperadas. Cada línea esperada lleva
+// al final un comentario "expect: <regla>" en el propio fixture, así que
+// agregar o mover líneas no rompe la verificación. El classpath de intTest
 // permite que PMD resuelva DockerImageName como tipo.
+val pmdFixtureFiles = fileTree("config/pmd/fixtures")
+
 val pmdFixtures =
     tasks.register<Pmd>("pmdFixtures") {
         description = "Analiza los fixtures de config/pmd/fixtures con ruleset-test.xml."
         group = "verification"
-        source = fileTree("config/pmd/fixtures")
-        ruleSetFiles = files("config/pmd/ruleset-test.xml")
+        source = pmdFixtureFiles
+        ruleSetFiles = files(pmdTestRuleSet)
+        inputs.file(pmdBaseRuleSet).withPropertyName("baseRuleSet")
         ruleSets = emptyList()
         classpath = intTest.compileClasspath
         ignoreFailures = true
@@ -281,17 +299,36 @@ val verifyPmdTestRules =
         group = "verification"
         dependsOn(pmdFixtures)
         val report = layout.buildDirectory.file("reports/pmd/fixtures.xml")
-        // Archivo:línea:regla. Los helpers sin marcar y las imágenes con tag
-        // no figuran a propósito.
-        val expected =
-            setOf(
-                "TestHelpersAtEndFixture.java:10:TestHelpersAtEnd",
-                "PinnedContainerImageFixture.java:7:PinnedContainerImage",
-                "PinnedContainerImageFixture.java:8:PinnedContainerImage",
-                "PinnedContainerImageFixture.java:9:PinnedContainerImage",
-            )
+        val fixtures = pmdFixtureFiles
+        // Con inputs y un output declarados, Gradle puede saltear la tarea
+        // cuando ni el reporte ni los fixtures cambiaron.
+        val marker = layout.buildDirectory.file("reports/pmd/fixtures-verified.txt")
+        inputs.file(report).withPropertyName("report")
+        inputs.files(fixtures).withPropertyName("fixtures")
+        outputs.file(marker)
+        // La lista de reglas es explícita: si un fixture perdiera todos sus
+        // "expect:", la regla dejaría de verificarse sin aviso.
         val checkedRules = setOf("TestHelpersAtEnd", "PinnedContainerImage")
+        val expectMarker = Regex("""//\s*expect:\s*(\w+)\s*$""")
         doLast {
+            // Archivo:línea:regla, tomado de los comentarios "expect:". Los
+            // helpers sin marcar y las imágenes con tag no llevan marca a
+            // propósito.
+            val expected = mutableSetOf<String>()
+            fixtures.files.forEach { fixture ->
+                fixture.readLines().forEachIndexed { index, line ->
+                    expectMarker.find(line)?.let { match ->
+                        expected.add("${fixture.name}:${index + 1}:${match.groupValues[1]}")
+                    }
+                }
+            }
+            val unverifiedRules = checkedRules.filter { rule -> expected.none { it.endsWith(":$rule") } }
+            if (unverifiedRules.isNotEmpty()) {
+                throw GradleException(
+                    "Ningún fixture de config/pmd/fixtures tiene \"expect:\" para: $unverifiedRules",
+                )
+            }
+
             val document =
                 javax.xml.parsers.DocumentBuilderFactory
                     .newInstance()
@@ -320,6 +357,7 @@ val verifyPmdTestRules =
                         "Marcadas de más: $unexpected",
                 )
             }
+            marker.get().asFile.writeText(expected.sorted().joinToString("\n", postfix = "\n"))
         }
     }
 

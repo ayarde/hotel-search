@@ -221,7 +221,7 @@ Si `@ServiceConnection` no aplica, usar `@DynamicPropertySource`.
       hardcodeados, limpieza de estado
 - [ ] `pmdTest` y `pmdIntTest` sin hallazgos (`config/pmd/ruleset-test.xml`
       verifica naming, helpers al final e imágenes pinneadas; el Javadoc
-      se sigue revisando a mano)
+      se sigue revisando a mano porque PMD 7 no expone comentarios a XPath)
 - [ ] Comandos de build ejecutados y resultados reales reportados
 - [ ] Cobertura no por debajo del umbral cuando corresponda a la fase
 
