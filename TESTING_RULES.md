@@ -71,7 +71,7 @@ No usar nombres de test en español.
 
 ## 4. Comentarios (Javadoc)
 
-Todo test público debe llevar Javadoc en español que explique:
+Todo test debe llevar Javadoc en español que explique:
 
 - Qué escenario se prueba.
 - Condiciones relevantes.
@@ -173,11 +173,11 @@ class HotelSearchRepositoryIT {
 
     @Container
     @ServiceConnection
-    static /* container con versión pinneada + wait */ oracle = ...;
+    static final /* OracleContainer con versión pinneada + wait + timeout */ ORACLE = ...;
 
     @Container
     @ServiceConnection
-    static /* KafkaContainer pinneado */ kafka = ...;
+    static final /* KafkaContainer con versión pinneada + wait + timeout */ KAFKA = ...;
 }
 ```
 
