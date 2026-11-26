@@ -436,6 +436,12 @@ comentario que lo justifica. El de tests agrega reglas propias para
 helpers privados al final de la clase y las imágenes de Testcontainers con
 versión fijada.
 
+`check` también ejecuta `verifyPmdTestRules`, que analiza los fixtures de
+`config/pmd/fixtures` (no se compilan) con `ruleset-test.xml` y comprueba
+que `TestHelpersAtEnd` y `PinnedContainerImage` sigan marcando lo esperado.
+Así, una actualización de PMD o un cambio en el XPath no puede desactivar en
+silencio esas reglas.
+
 Reportes: `build/reports/pmd/main.html`, `test.html` e `intTest.html`.
 
 ### Versiones fijadas por CVE

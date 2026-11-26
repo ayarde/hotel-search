@@ -19,20 +19,6 @@ jacoco {
     reportsDirectory = layout.buildDirectory.dir("reports/jacoco")
 }
 
-// Análisis estático; `check` depende de `pmdMain`, `pmdTest` y `pmdIntTest`
-// (los source sets se fijan después de crear intTest). Cada tarea falla si PMD
-// informa más de 10 hallazgos: ese es el máximo que fija CORRECTIONS-PLAN.md,
-// no un objetivo. Hoy hay 0 hallazgos, y los reportes (build/reports/pmd/)
-// listan cualquier hallazgo nuevo aunque el build siga pasando, así que
-// conviene revisarlos.
-pmd {
-    toolVersion = libs.versions.pmd.get()
-    ruleSetFiles = files("config/pmd/ruleset.xml")
-    ruleSets = emptyList()
-    maxFailures = 10
-    isConsoleOutput = true
-}
-
 // Exclusiones de cobertura: solo clases de configuración pura, es decir,
 // declaraciones de beans sin ramas ni reglas propias. Lo que tiene lógica
 // (KafkaConsumerConfig, KafkaProducerConfig, adaptadores) queda medido.
@@ -124,11 +110,22 @@ val intTest =
         runtimeClasspath += sourceSets.main.get().output
     }
 
-// Los tests usan su propio ruleset (config/pmd/ruleset-test.xml). pmdIntTest
-// solo analiza el código: no levanta containers, así que corre siempre, sin
-// -PintegrationTest=true.
+// Análisis estático; `check` depende de `pmdMain`, `pmdTest` y `pmdIntTest`.
+// Los source sets se fijan acá, después de crear intTest. El código de
+// producción usa config/pmd/ruleset.xml y los tests, ruleset-test.xml;
+// pmdIntTest solo analiza el código, no levanta containers, así que corre
+// siempre, sin -PintegrationTest=true. Cada tarea falla si PMD informa más de
+// 10 hallazgos: ese es el máximo que fija CORRECTIONS-PLAN.md, no un
+// objetivo. Hoy hay 0 hallazgos, y los reportes (build/reports/pmd/) listan
+// cualquier hallazgo nuevo aunque el build siga pasando, así que conviene
+// revisarlos.
 pmd {
+    toolVersion = libs.versions.pmd.get()
     sourceSets = listOf(project.sourceSets.main.get(), project.sourceSets.test.get(), intTest)
+    ruleSetFiles = files("config/pmd/ruleset.xml")
+    ruleSets = emptyList()
+    maxFailures = 10
+    isConsoleOutput = true
 }
 
 tasks.named<Pmd>("pmdTest") { ruleSetFiles = files("config/pmd/ruleset-test.xml") }
@@ -254,8 +251,80 @@ val verifyCvePinnedVersions =
         }
     }
 
+// Las reglas TestHelpersAtEnd y PinnedContainerImage son XPath. Si una
+// actualización de PMD cambia el nombre de un nodo o de un atributo, o alguien
+// edita la consulta, la regla puede dejar de marcar nada y pmdTest seguiría
+// en verde. Esta verificación analiza los fixtures de config/pmd/fixtures
+// (no se compilan ni pertenecen a ningún source set) con ruleset-test.xml y
+// compara las líneas marcadas contra las esperadas. El classpath de intTest
+// permite que PMD resuelva DockerImageName como tipo.
+val pmdFixtures =
+    tasks.register<Pmd>("pmdFixtures") {
+        description = "Analiza los fixtures de config/pmd/fixtures con ruleset-test.xml."
+        group = "verification"
+        source = fileTree("config/pmd/fixtures")
+        ruleSetFiles = files("config/pmd/ruleset-test.xml")
+        ruleSets = emptyList()
+        classpath = intTest.compileClasspath
+        ignoreFailures = true
+        isConsoleOutput = false
+        reports {
+            xml.required.set(true)
+            html.required.set(false)
+            xml.outputLocation.set(layout.buildDirectory.file("reports/pmd/fixtures.xml"))
+        }
+    }
+
+val verifyPmdTestRules =
+    tasks.register("verifyPmdTestRules") {
+        description = "Verifica que las reglas XPath de ruleset-test.xml marquen los fixtures esperados."
+        group = "verification"
+        dependsOn(pmdFixtures)
+        val report = layout.buildDirectory.file("reports/pmd/fixtures.xml")
+        // Archivo:línea:regla. Los helpers sin marcar y las imágenes con tag
+        // no figuran a propósito.
+        val expected =
+            setOf(
+                "TestHelpersAtEndFixture.java:10:TestHelpersAtEnd",
+                "PinnedContainerImageFixture.java:7:PinnedContainerImage",
+                "PinnedContainerImageFixture.java:8:PinnedContainerImage",
+                "PinnedContainerImageFixture.java:9:PinnedContainerImage",
+            )
+        val checkedRules = setOf("TestHelpersAtEnd", "PinnedContainerImage")
+        doLast {
+            val document =
+                javax.xml.parsers.DocumentBuilderFactory
+                    .newInstance()
+                    .newDocumentBuilder()
+                    .parse(report.get().asFile)
+            val files = document.getElementsByTagName("file")
+            val actual = mutableSetOf<String>()
+            for (i in 0 until files.length) {
+                val file = files.item(i) as org.w3c.dom.Element
+                val fileName = file.getAttribute("name").substringAfterLast('/')
+                val violations = file.getElementsByTagName("violation")
+                for (j in 0 until violations.length) {
+                    val violation = violations.item(j) as org.w3c.dom.Element
+                    val rule = violation.getAttribute("rule")
+                    if (rule in checkedRules) {
+                        actual.add("$fileName:${violation.getAttribute("beginline")}:$rule")
+                    }
+                }
+            }
+            val missing = (expected - actual).sorted()
+            val unexpected = (actual - expected).sorted()
+            if (missing.isNotEmpty() || unexpected.isNotEmpty()) {
+                throw GradleException(
+                    "Las reglas de ruleset-test.xml no marcan lo esperado en config/pmd/fixtures.\n" +
+                        "Sin marcar (esperadas): $missing\n" +
+                        "Marcadas de más: $unexpected",
+                )
+            }
+        }
+    }
+
 tasks.named("check") {
-    dependsOn(integrationTest, verifyCvePinnedVersions)
+    dependsOn(integrationTest, verifyCvePinnedVersions, verifyPmdTestRules)
 }
 
 tasks.named<Test>("test") {

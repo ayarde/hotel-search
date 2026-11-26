@@ -429,6 +429,18 @@ la búsqueda y su cantidad de equivalentes.
   innecesarios. Tres `@SuppressWarnings("PMD.CloseResource")` comentados:
   el deserializador que se consulta del factory y el scope que el test
   cierra a mano dos veces.
+- Seguimiento de la revisión del ruleset: el bloque `pmd { }` de
+  `build.gradle.kts` quedó unificado; ambos rulesets documentan que una
+  regla excluida y vuelta a declarar está configurada, no desactivada; y
+  `PinnedContainerImage` documenta su límite (solo literales directos).
+  Nueva tarea `verifyPmdTestRules`, dentro de `check`: analiza los fixtures
+  de `config/pmd/fixtures` con `ruleset-test.xml` y compara las líneas
+  marcadas por `TestHelpersAtEnd` y `PinnedContainerImage` contra las
+  esperadas. Se comprobó que falla si se rompe el XPath (cambiando `Test`
+  por `Xest`, y `:latest` por otro sufijo). Las copias de
+  `AvoidRestrictedIdentifiers` y `UseUnnamedVariable` se mantienen: la
+  referencia `config/pmd/ruleset.xml/...` no resuelve (PMD la busca en el
+  classpath) y la tarea termina con "No files to analyze" sin fallar.
 - `TESTING_RULES.md` §5 decía que los tests son públicos; se corrigió a
   package-private, que es lo que exige JUnit 5 y lo que ya usaba el código.
 - Validación: `./gradlew clean build -PintegrationTest=true` en verde con

@@ -10,6 +10,12 @@
         y algunas se ajustan por propiedades en lugar de desactivarse.
     </description>
 
+    <!-- Convención: una regla que se excluye de su categoría y se vuelve a
+         referenciar más abajo está configurada, no desactivada. Las
+         referencias a una categoría completa no aceptan propiedades por
+         regla, por eso se la excluye y se la declara aparte con sus
+         propiedades. -->
+
     <rule ref="category/java/bestpractices.xml">
         <!-- Marca cualquier interfaz con un solo método abstracto, como los
              puertos (HotelSearchRepository.save). Que hoy tengan un método no

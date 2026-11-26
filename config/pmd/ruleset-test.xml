@@ -11,6 +11,12 @@
         propias que verifican las convenciones de TESTING_RULES.md.
     </description>
 
+    <!-- Convención: una regla que se excluye de su categoría y se vuelve a
+         referenciar más abajo está configurada, no desactivada. Las
+         referencias a una categoría completa no aceptan propiedades por
+         regla, por eso se la excluye y se la declara aparte con sus
+         propiedades. -->
+
     <!-- ===================== bestpractices ===================== -->
     <rule ref="category/java/bestpractices.xml">
         <!-- Un test verifica un comportamiento, que puede requerir varias
@@ -174,6 +180,11 @@
         <description>
             Detecta imágenes con :latest y nombres de imagen sin tag pasados a
             DockerImageName.parse o al constructor de un container.
+            Límite: solo inspecciona literales String pasados directamente. Una
+            imagen que llega desde una constante o una variable no se revisa;
+            hoy todas las imágenes son literales directos, como en el patrón
+            de TESTING_RULES.md §8. Los fixtures de config/pmd/fixtures y la
+            tarea verifyPmdTestRules comprueban que la regla siga marcando.
         </description>
         <priority>2</priority>
         <properties>
