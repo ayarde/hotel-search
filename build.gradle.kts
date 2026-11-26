@@ -293,6 +293,17 @@ val pmdFixtures =
         }
     }
 
+// jrt-fs.jar del JDK de compilación, para que PMD resuelva los mismos tipos
+// que javac. Va después de pmdFixtures para que su classpath no lo pise.
+val jdkRuntimeFileSystem =
+    javaToolchains
+        .launcherFor(java.toolchain)
+        .map { it.metadata.installationPath.file("lib/jrt-fs.jar") }
+
+tasks.withType<Pmd>().configureEach {
+    classpath = (classpath ?: files()).plus(files(jdkRuntimeFileSystem))
+}
+
 val verifyPmdTestRules =
     tasks.register("verifyPmdTestRules") {
         description = "Verifica que las reglas XPath de ruleset-test.xml marquen los fixtures esperados."

@@ -446,6 +446,13 @@ comentario `// expect: <regla>` en el fixture; la tarea toma de ahí lo
 esperado y falla si una línea marcada no viola, si aparece un hallazgo sin
 marca o si una de las dos reglas se queda sin ninguna marca.
 
+En la salida del build, `pmdFixtures` informa algo como "13 PMD rule
+violations were found". Es esperado y no hace fallar el build: los fixtures
+tienen código incorrecto a propósito y además disparan reglas generales
+(`NoPackage`, `UncommentedEmptyMethodBody`, `UnitTestShouldIncludeAssert`,
+`UnusedPrivateMethod`). El resultado lo decide `verifyPmdTestRules`, que
+solo mira `TestHelpersAtEnd` y `PinnedContainerImage`.
+
 Reportes: `build/reports/pmd/main.html`, `test.html` e `intTest.html`.
 
 ### Versiones fijadas por CVE
