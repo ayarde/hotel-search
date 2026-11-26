@@ -402,17 +402,54 @@ la búsqueda y su cantidad de equivalentes.
   hallazgos. JaCoCo con exclusiones reducidas: `LINE` 95,6 % (433/453) y
   `BRANCH` 93,6 % (103/110).
 
+### PMD sobre los tests
+
+- Rama: `chore/pmd-test-ruleset`.
+- Ruleset propio para unit e integration tests en
+  `config/pmd/ruleset-test.xml`, aplicado por `pmdTest` y `pmdIntTest`,
+  que corren en `check` con el mismo límite de 10 hallazgos. Parte de las
+  mismas categorías y exclusiones que el ruleset principal, excluye lo que
+  en tests solo es ruido y agrega reglas propias para `TESTING_RULES.md`:
+  naming `method_State`, helpers privados al final de la clase e imágenes
+  de Testcontainers con versión fijada.
+- `LinguisticNaming` se excluye: tests como `toCommand_ValidRequest_...`
+  empiezan con el nombre del método bajo prueba, como pide §2, y la regla
+  los toma como conversiones que devuelven void.
+- El Javadoc obligatorio de §4 no se verifica con PMD: los tests son
+  package-private y `CommentRequired` solo controla miembros públicos y
+  protegidos. Sigue siendo revisión manual.
+- Las reglas `TestHelpersAtEnd` y `PinnedContainerImage` se probaron con un
+  fixture fuera del repo: marcan imágenes sin tag, `:latest` y un helper
+  entre dos tests, y no marcan una imagen con versión.
+- Hallazgos iniciales: 34 en `src/test` y 39 en `src/intTest`. Se
+  corrigieron en el código: containers y logger `static final` en
+  mayúsculas, como el patrón de §8; campos antes de los métodos; variables
+  `record` renombradas a `consumerRecord`; `_` para variables sin uso;
+  `a`/`b` renombradas a `first`/`second`; imports y nombres calificados
+  innecesarios. Tres `@SuppressWarnings("PMD.CloseResource")` comentados:
+  el deserializador que se consulta del factory y el scope que el test
+  cierra a mano dos veces.
+- `TESTING_RULES.md` §5 decía que los tests son públicos; se corrigió a
+  package-private, que es lo que exige JUnit 5 y lo que ya usaba el código.
+- Validación: `./gradlew clean build -PintegrationTest=true` en verde con
+  153 unit tests y 24 integration tests, sin fallos ni tests omitidos. PMD
+  con 0 hallazgos en `main`, `test` e `intTest`. JaCoCo sin cambios: `LINE`
+  95,6 % (433/453) y `BRANCH` 93,6 % (103/110).
+
 ## Validaciones actuales
 
 ### Cierre del plan de correcciones (Fases 10 a 15)
 
 - `./gradlew clean build -PintegrationTest=true`, ejecutado al cerrar la
   Fase 15: 153 unit tests y 24 integration tests, sin fallos ni tests
-  omitidos. `check` incluye `pmdMain` y `verifyCvePinnedVersions`.
+  omitidos. `check` incluye `pmdMain` y `verifyCvePinnedVersions`. Desde
+  "PMD sobre los tests", también `pmdTest` y `pmdIntTest`, con el mismo
+  resultado de tests y cobertura.
 - Cobertura JaCoCo con exclusiones reducidas a la configuración pura:
   `LINE` 95,6 % (433/453) y `BRANCH` 93,6 % (103/110). Umbral bloqueante:
   80 % en líneas y branches.
-- PMD: 0 hallazgos sobre el código de producción (límite: 10).
+- PMD: 0 hallazgos sobre el código de producción, los unit tests y los
+  integration tests (límite: 10 por tarea).
 - Docker Compose, validado en la Fase 10 sobre un volumen nuevo: Flyway
   aplica `V1` y `V2`, el POST con `hotelId` `1234aBc` responde 202 y el GET
   devuelve `1234aBc` sin cambios. Las Fases 11 a 15 no tocaron Compose, el
@@ -493,8 +530,8 @@ docker compose ps
   adicionales y 1 segundo de intervalo.
 - JaCoCo verifica `LINE` y `BRANCH` con mínimo 80 %; las demás métricas se
   miden en el informe, pero no bloquean el build.
-- PMD corre en `check` sobre el código de producción y el build falla con
-  más de 10 hallazgos.
+- PMD corre en `check` sobre el código de producción y los tests, cada uno
+  con su ruleset, y el build falla con más de 10 hallazgos en una tarea.
 - Sin idempotencia HTTP, sin Outbox, sin XA y sin consumidor automático del
   DLT.
 - Micrometer Tracing se usa solo para logs y correlación; no hay exportador

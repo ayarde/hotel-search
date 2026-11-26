@@ -418,18 +418,25 @@ Reportes disponibles:
 ### Análisis estático
 
 ```bash
-./gradlew pmdMain
+./gradlew pmdMain pmdTest pmdIntTest
 ```
 
 PMD analiza el código de producción con el ruleset
-`config/pmd/ruleset.xml` y corre como parte de `check`, así que también lo
-ejecuta `./gradlew build`. El build falla si hay más de 10 hallazgos. El
-ruleset incluye las ocho categorías de reglas Java de PMD; las pocas reglas
-excluidas o ajustadas tienen el motivo escrito junto a la exclusión, y cada
-`@SuppressWarnings("PMD...")` del código lleva un comentario que lo
-justifica.
+`config/pmd/ruleset.xml`, y los unit e integration tests con
+`config/pmd/ruleset-test.xml`. Las tres tareas corren como parte de
+`check`, así que también las ejecuta `./gradlew build`; `pmdIntTest` solo
+analiza el código, sin levantar containers, y no depende de
+`-PintegrationTest=true`. Cada tarea falla si hay más de 10 hallazgos.
 
-Reporte: `build/reports/pmd/main.html`.
+Los dos rulesets incluyen las ocho categorías de reglas Java de PMD; las
+pocas reglas excluidas o ajustadas tienen el motivo escrito junto a la
+exclusión, y cada `@SuppressWarnings("PMD...")` del código lleva un
+comentario que lo justifica. El de tests agrega reglas propias para
+`TESTING_RULES.md`: el formato `method_State` en los nombres de test, los
+helpers privados al final de la clase y las imágenes de Testcontainers con
+versión fijada.
+
+Reportes: `build/reports/pmd/main.html`, `test.html` e `intTest.html`.
 
 ### Versiones fijadas por CVE
 

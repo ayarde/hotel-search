@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="hotel-search-tests"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Reglas PMD comunes a unit e integration tests de Hotel Search. Parte de
+        las mismas ocho categorías que el ruleset principal, con sus mismas
+        exclusiones, excluye lo que solo genera ruido en tests y agrega reglas
+        propias que verifican las convenciones de TESTING_RULES.md.
+    </description>
+
+    <!-- ===================== bestpractices ===================== -->
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Un test verifica un comportamiento, que puede requerir varias
+             aserciones sobre el mismo resultado (por ejemplo, los campos de
+             un mensaje consumido de Kafka). -->
+        <exclude name="UnitTestContainsTooManyAsserts"/>
+        <!-- TESTING_RULES.md §3 pide que los mensajes de assert estén en
+             español cuando se usan, pero no exige uno en cada aserción: el
+             nombre del test y el mensaje de AssertJ ya describen el fallo. -->
+        <exclude name="UnitTestAssertionsShouldIncludeMessage"/>
+        <!-- Mismo motivo que en el ruleset principal. -->
+        <exclude name="ImplicitFunctionalInterface"/>
+        <exclude name="GuardLogStatement"/>
+    </rule>
+
+    <!-- ===================== codestyle ===================== -->
+    <rule ref="category/java/codestyle.xml">
+        <!-- Mismas exclusiones que el ruleset principal. -->
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="LocalVariableDeclarationShouldBeAtStartOfBlock"/>
+        <exclude name="UseExplicitTypes"/>
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="LongVariable"/>
+        <exclude name="ShortMethodName"/>
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="CallSuperInConstructor"/>
+        <!-- Los tests importan estáticamente las aserciones y los matchers de
+             AssertJ, Mockito y Awaitility. -->
+        <exclude name="TooManyStaticImports"/>
+        <!-- En tests, la visibilidad de paquete es la norma (JUnit 5 y los
+             campos @Container static del patrón de TESTING_RULES.md §8);
+             exigir un comentario /* default */ en cada uno solo agrega ruido. -->
+        <exclude name="CommentDefaultAccessModifier"/>
+        <!-- Se configuran abajo: ShortVariable como en el ruleset principal y
+             MethodNamingConventions con el formato de TESTING_RULES.md §2. -->
+        <exclude name="ShortVariable"/>
+        <exclude name="MethodNamingConventions"/>
+        <!-- TESTING_RULES.md §2 pide que el nombre del test empiece con el
+             método bajo prueba. Para toCommand o toHotelSearch, la regla toma
+             el test como un método de conversión que devuelve void. -->
+        <exclude name="LinguisticNaming"/>
+    </rule>
+
+    <!-- Igual que en el ruleset principal: id es un nombre claro y se siguen
+         marcando los nombres de una letra fuera de los bucles. -->
+    <rule ref="category/java/codestyle.xml/ShortVariable">
+        <properties>
+            <property name="minimum" value="2"/>
+        </properties>
+    </rule>
+
+    <!-- TESTING_RULES.md §2: methodUnderTesting_StateUnderTest, con uno o
+         más segmentos en PascalCase separados por guion bajo
+         (submit_ValidRequest_ReturnsSearchId). Los helpers siguen en
+         camelCase. -->
+    <rule ref="category/java/codestyle.xml/MethodNamingConventions">
+        <properties>
+            <property name="junitJupiterTestPattern" value="[a-z][a-zA-Z0-9]*(_[A-Z][a-zA-Z0-9]*)+"/>
+        </properties>
+    </rule>
+
+    <!-- ===================== design ===================== -->
+    <rule ref="category/java/design.xml">
+        <!-- Mismo motivo que en el ruleset principal. -->
+        <exclude name="LawOfDemeter"/>
+        <!-- Sin la propiedad "packages" configurada, PMD la descarta con un
+             aviso de regla mal configurada. -->
+        <exclude name="LoosePackageCoupling"/>
+        <!-- Declarar throws Exception en un método de test es idiomático:
+             JUnit reporta cualquier excepción como fallo del test. -->
+        <exclude name="SignatureDeclareThrowsException"/>
+        <!-- Una clase de test tiene un método por escenario; muchos métodos
+             es normal y no indica una clase con demasiadas responsabilidades. -->
+        <exclude name="TooManyMethods"/>
+        <!-- Los tests de integración importan clases de Spring, Kafka,
+             Testcontainers y del dominio a la vez. -->
+        <exclude name="ExcessiveImports"/>
+        <exclude name="CouplingBetweenObjects"/>
+    </rule>
+
+    <!-- ===================== documentation ===================== -->
+    <rule ref="category/java/documentation.xml">
+        <!-- TESTING_RULES.md §4 exige Javadoc en todo test, pero los métodos
+             de test son package-private y CommentRequired solo controla
+             miembros públicos y protegidos. Esa regla se sigue revisando a
+             mano; activar CommentRequired solo exigiría Javadoc en campos. -->
+        <exclude name="CommentRequired"/>
+        <exclude name="CommentSize"/>
+    </rule>
+
+    <rule ref="category/java/documentation.xml/CommentSize">
+        <properties>
+            <property name="maxLines" value="20"/>
+            <property name="maxLineLength" value="100"/>
+        </properties>
+    </rule>
+
+    <!-- ===================== errorprone ===================== -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="EmptyCatchBlock"/>
+        <!-- Los datos de prueba repiten literales (ids, nombres de topics)
+             a propósito: cada test se lee de forma independiente. -->
+        <exclude name="AvoidDuplicateLiterals"/>
+        <!-- Mismo motivo que en el ruleset principal. -->
+        <exclude name="MissingSerialVersionUID"/>
+    </rule>
+
+    <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+        <properties>
+            <property name="allowCommentedBlocks" value="true"/>
+        </properties>
+    </rule>
+
+    <!-- ===================== resto de categorías ===================== -->
+    <!-- Mismos motivos que en el ruleset principal. Además, los tests de
+         concurrencia y redelivery (TESTING_RULES.md §9) necesitan hilos. -->
+    <rule ref="category/java/multithreading.xml">
+        <exclude name="DoNotUseThreads"/>
+        <exclude name="UseConcurrentHashMap"/>
+        <exclude name="AvoidSynchronizedStatement"/>
+        <exclude name="AvoidSynchronizedAtMethodLevel"/>
+    </rule>
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+    </rule>
+    <rule ref="category/java/security.xml"/>
+
+    <!-- ===================== reglas propias ===================== -->
+    <!-- La inyección por campo (@Autowired) se acepta en tests: JUnit crea la
+         instancia de la clase de test, y es la forma habitual con
+         @SpringBootTest. Por eso AvoidFieldInjection no se incluye acá. -->
+
+    <!-- TESTING_RULES.md §5: primero los tests y al final los helpers
+         privados. -->
+    <rule name="TestHelpersAtEnd"
+          language="java"
+          message="Mover el helper privado al final de la clase, después de todos los tests"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            Los métodos auxiliares privados van agrupados al final de la clase,
+            dentro del editor-fold de Helpers. No se intercalan entre tests.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//ClassBody/MethodDeclaration[@Visibility = 'private']
+    [following-sibling::MethodDeclaration
+        [ModifierList/Annotation[@SimpleName = ('Test', 'ParameterizedTest', 'RepeatedTest')]]]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- TESTING_RULES.md §8.1: imagen de Testcontainers con versión pinneada. -->
+    <rule name="PinnedContainerImage"
+          language="java"
+          message="Pinnear la versión de la imagen; no usar :latest ni omitir el tag"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            Detecta imágenes con :latest y nombres de imagen sin tag pasados a
+            DockerImageName.parse o al constructor de un container.
+        </description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//StringLiteral[ends-with(@ConstValue, ':latest')]
+|
+//ConstructorCall[ClassType[ends-with(@SimpleName, 'Container')]]
+    /ArgumentList/StringLiteral[not(contains(@ConstValue, ':'))]
+|
+//MethodCall[@MethodName = 'parse'][TypeExpression/ClassType[@SimpleName = 'DockerImageName']]
+    /ArgumentList/StringLiteral[not(contains(@ConstValue, ':'))]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Las dos reglas siguientes son copia de las del ruleset principal. Si
+         se cambia una, cambiar la otra. -->
+    <rule name="AvoidRestrictedIdentifiers"
+          language="java"
+          message="No usar la palabra clave contextual ''{0}'' como nombre de variable"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            record, var, yield, sealed y permits son palabras clave
+            contextuales del lenguaje (JLS 3.9). El compilador las acepta como
+            nombre de variable, pero confunden la lectura; con Kafka, preferir
+            consumerRecord, producerRecord o message.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//VariableId[@Name = ('record', 'var', 'yield', 'sealed', 'permits')]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="UseUnnamedVariable"
+          language="java"
+          message="Usar _ para una variable que no se usa, en lugar de ''{0}''"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            UnusedLocalVariable ignora a propósito las variables llamadas
+            ignored o unused, así que esos nombres esconden variables sin uso.
+            Desde Java 22, una variable que no se usa se declara con _ (en
+            try-with-resources, catch, lambdas y patrones), y el compilador
+            impide usarla por error.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//VariableId[@Name = ('ignore', 'ignored', 'unused')]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

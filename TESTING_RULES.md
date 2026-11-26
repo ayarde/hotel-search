@@ -106,7 +106,7 @@ sin formulaciones genéricas o típicas de IA.
 
 ## 5. Organización de Métodos
 
-1. Primero todos los métodos de test (públicos).
+1. Primero todos los métodos de test (package-private, como pide JUnit 5).
 2. Al final, métodos auxiliares privados agrupados:
 
 ```java
@@ -219,6 +219,9 @@ Si `@ServiceConnection` no aplica, usar `@DynamicPropertySource`.
 - [ ] Unit tests en `src/test`, integration en `src/intTest`
 - [ ] Testcontainers: imagen pinneada, wait strategy, sin puertos
       hardcodeados, limpieza de estado
+- [ ] `pmdTest` y `pmdIntTest` sin hallazgos (`config/pmd/ruleset-test.xml`
+      verifica naming, helpers al final e imágenes pinneadas; el Javadoc
+      se sigue revisando a mano)
 - [ ] Comandos de build ejecutados y resultados reales reportados
 - [ ] Cobertura no por debajo del umbral cuando corresponda a la fase
 

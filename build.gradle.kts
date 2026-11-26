@@ -19,14 +19,14 @@ jacoco {
     reportsDirectory = layout.buildDirectory.dir("reports/jacoco")
 }
 
-// Análisis estático sobre el código de producción; `check` depende de
-// `pmdMain`. El build falla si PMD informa más de 10 hallazgos: ese es el
-// máximo que fija CORRECTIONS-PLAN.md, no un objetivo. Hoy hay 0 hallazgos,
-// y el reporte (build/reports/pmd/main.html) lista cualquier hallazgo nuevo
-// aunque el build siga pasando, así que conviene revisarlo.
+// Análisis estático; `check` depende de `pmdMain`, `pmdTest` y `pmdIntTest`
+// (los source sets se fijan después de crear intTest). Cada tarea falla si PMD
+// informa más de 10 hallazgos: ese es el máximo que fija CORRECTIONS-PLAN.md,
+// no un objetivo. Hoy hay 0 hallazgos, y los reportes (build/reports/pmd/)
+// listan cualquier hallazgo nuevo aunque el build siga pasando, así que
+// conviene revisarlos.
 pmd {
     toolVersion = libs.versions.pmd.get()
-    sourceSets = listOf(project.sourceSets.main.get())
     ruleSetFiles = files("config/pmd/ruleset.xml")
     ruleSets = emptyList()
     maxFailures = 10
@@ -123,6 +123,16 @@ val intTest =
         compileClasspath += sourceSets.main.get().output
         runtimeClasspath += sourceSets.main.get().output
     }
+
+// Los tests usan su propio ruleset (config/pmd/ruleset-test.xml). pmdIntTest
+// solo analiza el código: no levanta containers, así que corre siempre, sin
+// -PintegrationTest=true.
+pmd {
+    sourceSets = listOf(project.sourceSets.main.get(), project.sourceSets.test.get(), intTest)
+}
+
+tasks.named<Pmd>("pmdTest") { ruleSetFiles = files("config/pmd/ruleset-test.xml") }
+tasks.named<Pmd>("pmdIntTest") { ruleSetFiles = files("config/pmd/ruleset-test.xml") }
 
 configurations {
     named("intTestImplementation") {
