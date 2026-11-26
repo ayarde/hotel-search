@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguratio
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.task.TaskExecutor;
 
@@ -55,7 +56,7 @@ class OperationalConfigurationTest {
                 assertThat(context.getStartupFailure()).isNull();
                 var environment = context.getEnvironment();
                 Map<String, String> renamedFields = Binder.get(environment)
-                    .bind("logging.structured.json.rename", Map.class)
+                    .bind("logging.structured.json.rename", Bindable.mapOf(String.class, String.class))
                     .get();
                 var dataSource = context.getBean(HikariDataSource.class);
 

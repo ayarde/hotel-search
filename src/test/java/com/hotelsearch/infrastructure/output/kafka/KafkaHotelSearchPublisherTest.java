@@ -66,9 +66,9 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_BrokerAcknowledges_SendsEventKeyedBySearchId() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        KafkaTemplate<String, Object> template = mock();
         doReturn(CompletableFuture.completedFuture(acknowledgedResult()))
-            .when(template).send(any(ProducerRecord.class));
+            .when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
         HotelSearchEvent event = validEvent();
 
@@ -76,8 +76,7 @@ class KafkaHotelSearchPublisherTest {
         publisher.publish(event);
 
         // then
-        ArgumentCaptor<ProducerRecord<String, Object>> captor =
-            ArgumentCaptor.forClass(ProducerRecord.class);
+        ArgumentCaptor<ProducerRecord<String, Object>> captor = ArgumentCaptor.captor();
         verify(template).send(captor.capture());
         assertAll(
             () -> assertThat(captor.getValue().topic()).as("Debe publicarse en el topic configurado")
@@ -103,8 +102,8 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_ValidEvent_AddsCorrelationHeaderAndClearsMdc() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
-        SendResult<String, Object> sendResult = mock(SendResult.class);
+        KafkaTemplate<String, Object> template = mock();
+        SendResult<String, Object> sendResult = mock();
         var metadata = mock(RecordMetadata.class);
         when(sendResult.getRecordMetadata()).thenReturn(metadata);
         when(metadata.topic()).thenReturn("hotel_availability_searches");
@@ -118,7 +117,7 @@ class KafkaHotelSearchPublisherTest {
                     CorrelationContext.KAFKA_PRODUCER_COMPONENT)
                 .containsEntry(CorrelationContext.SEARCH_ID, event.searchId().toString());
             return CompletableFuture.completedFuture(sendResult);
-        }).when(template).send(any(ProducerRecord.class));
+        }).when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher =
             new KafkaHotelSearchPublisher(template, TOPIC);
 
@@ -126,8 +125,7 @@ class KafkaHotelSearchPublisherTest {
         publisher.publish(event);
 
         // then
-        ArgumentCaptor<ProducerRecord<String, Object>> captor =
-            ArgumentCaptor.forClass(ProducerRecord.class);
+        ArgumentCaptor<ProducerRecord<String, Object>> captor = ArgumentCaptor.captor();
         verify(template).send(captor.capture());
         var header = captor.getValue().headers().lastHeader(CorrelationContext.SEARCH_ID);
         assertThat(header).as("El evento debe propagar el searchId")
@@ -151,10 +149,10 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_BrokerTimeout_ThrowsUnavailableException() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        KafkaTemplate<String, Object> template = mock();
         CompletableFuture<SendResult<String, Object>> failed = new CompletableFuture<>();
         failed.completeExceptionally(new TimeoutException("timeout"));
-        doReturn(failed).when(template).send(any(ProducerRecord.class));
+        doReturn(failed).when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
 
         // when
@@ -182,10 +180,10 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_BrokerFailure_ThrowsUnavailableException() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        KafkaTemplate<String, Object> template = mock();
         CompletableFuture<SendResult<String, Object>> failed = new CompletableFuture<>();
         failed.completeExceptionally(new IllegalStateException("broker caído"));
-        doReturn(failed).when(template).send(any(ProducerRecord.class));
+        doReturn(failed).when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
 
         // when
@@ -213,9 +211,9 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_SynchronousKafkaFailure_ThrowsUnavailableException() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        KafkaTemplate<String, Object> template = mock();
         KafkaException cause = new KafkaException("producer cerrado");
-        doThrow(cause).when(template).send(any(ProducerRecord.class));
+        doThrow(cause).when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
 
         // when
@@ -241,11 +239,11 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_ExecutionFailureWithoutCause_ThrowsUnavailableException() throws Exception {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
-        CompletableFuture<SendResult<String, Object>> future = mock(CompletableFuture.class);
+        KafkaTemplate<String, Object> template = mock();
+        CompletableFuture<SendResult<String, Object>> future = mock();
         ExecutionException failure = new ExecutionException("fallo sin causa", null);
         when(future.get()).thenThrow(failure);
-        doReturn(future).when(template).send(any(ProducerRecord.class));
+        doReturn(future).when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
 
         // when
@@ -274,11 +272,11 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_InterruptedWhileWaitingAck_RestoresInterruptFlag() throws Exception {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
-        CompletableFuture<SendResult<String, Object>> future = mock(CompletableFuture.class);
+        KafkaTemplate<String, Object> template = mock();
+        CompletableFuture<SendResult<String, Object>> future = mock();
         InterruptedException interruption = new InterruptedException("interrumpido");
         when(future.get()).thenThrow(interruption);
-        doReturn(future).when(template).send(any(ProducerRecord.class));
+        doReturn(future).when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
 
         // when
@@ -310,9 +308,9 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_DebugEnabled_LogsBrokerMetadata() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        KafkaTemplate<String, Object> template = mock();
         doReturn(CompletableFuture.completedFuture(acknowledgedResult()))
-            .when(template).send(any(ProducerRecord.class));
+            .when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
         HotelSearchEvent event = validEvent();
         Logger logger = (Logger) LoggerFactory.getLogger(KafkaHotelSearchPublisher.class);
@@ -356,10 +354,10 @@ class KafkaHotelSearchPublisherTest {
     @Test
     void publish_InfoLevel_DoesNotLogNorReadMetadata() throws Exception {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
-        SendResult<String, Object> sendResult = mock(SendResult.class);
+        KafkaTemplate<String, Object> template = mock();
+        SendResult<String, Object> sendResult = mock();
         doReturn(CompletableFuture.completedFuture(sendResult))
-            .when(template).send(any(ProducerRecord.class));
+            .when(template).send(anyProducerRecord());
         KafkaHotelSearchPublisher publisher = new KafkaHotelSearchPublisher(template, TOPIC);
         Logger logger = (Logger) LoggerFactory.getLogger(KafkaHotelSearchPublisher.class);
         Level previousLevel = logger.getLevel();
@@ -382,8 +380,14 @@ class KafkaHotelSearchPublisherTest {
     }
 
     // <editor-fold desc="Helpers">
+    // any(ProducerRecord.class) devuelve el tipo raw y genera un warning
+    // unchecked; any() toma el tipo genérico del retorno.
+    private static ProducerRecord<String, Object> anyProducerRecord() {
+        return any();
+    }
+
     private SendResult<String, Object> acknowledgedResult() {
-        SendResult<String, Object> sendResult = mock(SendResult.class);
+        SendResult<String, Object> sendResult = mock();
         RecordMetadata metadata = mock(RecordMetadata.class);
         when(sendResult.getRecordMetadata()).thenReturn(metadata);
         when(metadata.topic()).thenReturn(TOPIC);

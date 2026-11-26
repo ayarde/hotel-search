@@ -68,7 +68,7 @@ class KafkaConsumerConfigTest {
     @Test
     void kafkaListenerContainerFactory_Configured_UsesRecordAckMode() {
         // given
-        var consumerFactory = mock(ConsumerFactory.class);
+        ConsumerFactory<String, HotelSearchEvent> consumerFactory = mock();
 
         // when
         var factory = config.kafkaListenerContainerFactory(
@@ -97,7 +97,7 @@ class KafkaConsumerConfigTest {
     @Test
     void kafkaListenerContainerFactory_ObservationsEnabled_ConfiguresContainerProperties() {
         // given
-        var consumerFactory = mock(ConsumerFactory.class);
+        ConsumerFactory<String, HotelSearchEvent> consumerFactory = mock();
         var observationRegistry = ObservationRegistry.create();
 
         // when
@@ -131,8 +131,8 @@ class KafkaConsumerConfigTest {
     @Test
     void kafkaErrorHandler_PermanentError_RecoversWithoutRetry() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
-        when(template.send(any(ProducerRecord.class)))
+        KafkaTemplate<String, Object> template = mock();
+        when(template.send(anyProducerRecord()))
             .thenReturn(CompletableFuture.completedFuture(null));
         DefaultErrorHandler handler = config.kafkaErrorHandler(template, DLT_TOPIC);
         ConsumerRecord<String, Object> consumerRecord = record();
@@ -145,7 +145,7 @@ class KafkaConsumerConfigTest {
             mock(MessageListenerContainer.class));
 
         // then
-        ArgumentCaptor<ProducerRecord<String, Object>> captor = ArgumentCaptor.forClass(ProducerRecord.class);
+        ArgumentCaptor<ProducerRecord<String, Object>> captor = ArgumentCaptor.captor();
         verify(template).send(captor.capture());
         assertThat(captor.getValue().topic()).as("El mensaje debe ir al DLT configurado")
             .isEqualTo(DLT_TOPIC);
@@ -167,8 +167,8 @@ class KafkaConsumerConfigTest {
     @Test
     void kafkaErrorHandler_TransientError_RetriesThreeTimesThenRecovers() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
-        when(template.send(any(ProducerRecord.class)))
+        KafkaTemplate<String, Object> template = mock();
+        when(template.send(anyProducerRecord()))
             .thenReturn(CompletableFuture.completedFuture(null));
         DefaultErrorHandler handler = config.kafkaErrorHandler(template, DLT_TOPIC);
         ConsumerRecord<String, Object> consumerRecord = record();
@@ -181,7 +181,7 @@ class KafkaConsumerConfigTest {
                 mock(Consumer.class),
                 mock(MessageListenerContainer.class));
         }
-        verify(template, never()).send(any(ProducerRecord.class));
+        verify(template, never()).send(anyProducerRecord());
 
         handler.handleOne(
             new DataAccessResourceFailureException("Oracle no disponible"),
@@ -190,7 +190,7 @@ class KafkaConsumerConfigTest {
             mock(MessageListenerContainer.class));
 
         // then
-        verify(template).send(any(ProducerRecord.class));
+        verify(template).send(anyProducerRecord());
     }
 
     /**
@@ -206,11 +206,11 @@ class KafkaConsumerConfigTest {
     @Test
     void kafkaErrorHandler_DltPublicationFails_DoesNotRecoverRecord() {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        KafkaTemplate<String, Object> template = mock();
         CompletableFuture<SendResult<String, Object>> failedSend =
             new CompletableFuture<>();
         failedSend.completeExceptionally(new IllegalStateException("broker no disponible"));
-        when(template.send(any(ProducerRecord.class))).thenReturn(failedSend);
+        when(template.send(anyProducerRecord())).thenReturn(failedSend);
         DefaultErrorHandler handler = config.kafkaErrorHandler(template, DLT_TOPIC);
 
         // when
@@ -223,7 +223,7 @@ class KafkaConsumerConfigTest {
         // then
         assertThat(handled).as("El offset original no debe confirmarse")
             .isFalse();
-        verify(template).send(any(ProducerRecord.class));
+        verify(template).send(anyProducerRecord());
     }
 
     /**
@@ -340,8 +340,8 @@ class KafkaConsumerConfigTest {
     @MethodSource("permanentErrors")
     void kafkaErrorHandler_NotRetryableError_RecoversOnFirstAttempt(RuntimeException error) {
         // given
-        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
-        when(template.send(any(ProducerRecord.class)))
+        KafkaTemplate<String, Object> template = mock();
+        when(template.send(anyProducerRecord()))
             .thenReturn(CompletableFuture.completedFuture(null));
         DefaultErrorHandler handler = config.kafkaErrorHandler(template, DLT_TOPIC);
 
@@ -355,7 +355,7 @@ class KafkaConsumerConfigTest {
         // then
         assertThat(handled).as("%s debe recuperarse sin reintentos", error.getClass().getSimpleName())
             .isTrue();
-        verify(template).send(any(ProducerRecord.class));
+        verify(template).send(anyProducerRecord());
     }
 
     /**
@@ -413,6 +413,12 @@ class KafkaConsumerConfigTest {
             12L,
             "550e8400-e29b-41d4-a716-446655440000",
             new Object());
+    }
+
+    // any(ProducerRecord.class) devuelve el tipo raw y genera un warning
+    // unchecked; any() toma el tipo genérico del retorno.
+    private static ProducerRecord<String, Object> anyProducerRecord() {
+        return any();
     }
     // </editor-fold>
 }

@@ -25,6 +25,7 @@ import com.hotelsearch.domain.valueobject.CheckIn;
 import com.hotelsearch.domain.valueobject.CheckOut;
 import com.hotelsearch.domain.valueobject.HotelId;
 import com.hotelsearch.domain.valueobject.SearchId;
+import org.mockito.ArgumentMatchers;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -121,7 +122,7 @@ class JdbcHotelSearchRepositoryTest {
     void findByIdWithCount_NotFound_ReturnsEmpty() {
         // given
         SearchId searchId = SearchId.generate();
-        when(jdbcTemplate.query(anyString(), any(RowMapper.class), anyString()))
+        when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<HotelSearchWithCount>>any(), anyString()))
             .thenReturn(List.of());
 
         // when
@@ -148,7 +149,7 @@ class JdbcHotelSearchRepositoryTest {
         SearchId searchId = SearchId.generate();
         HotelSearchWithCount expected = new HotelSearchWithCount(
             validSearch(), 2);
-        when(jdbcTemplate.query(anyString(), any(RowMapper.class), anyString()))
+        when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<HotelSearchWithCount>>any(), anyString()))
             .thenReturn(List.of(expected));
 
         // when

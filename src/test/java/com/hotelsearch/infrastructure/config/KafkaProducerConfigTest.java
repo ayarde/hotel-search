@@ -31,6 +31,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.ResolvableType;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
@@ -75,7 +76,7 @@ class KafkaProducerConfigTest {
             .run(context -> {
                 // then
                 assertThat(context.getStartupFailure()).isNull();
-                var factory = context.getBean(DefaultKafkaProducerFactory.class);
+                DefaultKafkaProducerFactory<?, ?> factory = context.getBean(DefaultKafkaProducerFactory.class);
                 assertAll(
                     () -> assertThat(factory.getConfigurationProperties())
                         .containsEntry(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
@@ -112,7 +113,7 @@ class KafkaProducerConfigTest {
             .run(context -> {
                 // then
                 assertThat(context.getStartupFailure()).isNull();
-                var factory = context.getBean(DefaultKafkaProducerFactory.class);
+                DefaultKafkaProducerFactory<?, ?> factory = context.getBean(DefaultKafkaProducerFactory.class);
                 assertThat(factory.getConfigurationProperties())
                     .containsEntry(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:29092")
                     .containsEntry(ProducerConfig.ACKS_CONFIG, "1")
@@ -141,7 +142,9 @@ class KafkaProducerConfigTest {
         contextRunner
             // when
             .run(context -> {
-                var factory = context.getBean(DefaultKafkaProducerFactory.class);
+                ProducerFactory<String, Object> factory = context.<ProducerFactory<String, Object>>getBeanProvider(
+                    ResolvableType.forClassWithGenerics(ProducerFactory.class, String.class, Object.class))
+                .getObject();
                 byte[] payload = factory.getValueSerializer()
                     .serialize("hotel_availability_searches", headers, event);
 
@@ -192,15 +195,14 @@ class KafkaProducerConfigTest {
      * - El producer se cierre con un timeout de 7 segundos
      */
     @Test
-    @SuppressWarnings("unchecked")
     void kafkaTemplate_TemplateProperties_ObservesSendAndClosesWithTimeout() {
         // given
-        Producer<String, Object> producer = mock(Producer.class);
-        ProducerFactory<String, Object> producerFactory = mock(ProducerFactory.class);
+        Producer<String, Object> producer = mock();
+        ProducerFactory<String, Object> producerFactory = mock();
         when(producerFactory.createProducer()).thenReturn(producer);
         var metadata = new RecordMetadata(
             new TopicPartition("hotel_availability_searches", 0), 0L, 0, 0L, 0, 0);
-        when(producer.send(any(ProducerRecord.class), any())).thenAnswer(invocation -> {
+        when(producer.send(any(), any())).thenAnswer(invocation -> {
             Callback callback = invocation.getArgument(1);
             callback.onCompletion(metadata, null);
             return CompletableFuture.completedFuture(metadata);
@@ -224,7 +226,7 @@ class KafkaProducerConfigTest {
                 // then
                 assertThat(observations).as("Cada envío debe crear una observation para la correlación")
                     .containsExactly("spring.kafka.template");
-                verify(producer).send(any(ProducerRecord.class), any());
+                verify(producer).send(any(), any());
                 verify(producer).close(Duration.ofSeconds(7));
             });
     }

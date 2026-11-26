@@ -89,11 +89,10 @@ class RestExceptionHandlerTest {
         var response = handler.handleMethodArgumentNotValid(exception, request);
 
         // then
-        Map<String, List<String>> errors = (Map<String, List<String>>) response.getBody().getProperties().get("errors");
+        Map<?, ?> errors = (Map<?, ?>) response.getBody().getProperties().get("errors");
         assertAll(
             () -> assertThat(response.getStatusCode().value()).isEqualTo(400),
-            () -> assertThat(errors.keySet()).containsExactly("checkOut"),
-            () -> assertThat(errors.get("checkOut")).containsExactly("valor inválido"));
+            () -> assertThat(errors).isEqualTo(Map.of("checkOut", List.of("valor inválido"))));
     }
 
     /**
