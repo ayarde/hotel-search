@@ -313,6 +313,12 @@ retorna. Spring Kafka puede entonces confirmar el offset correspondiente.
   Corre en `check`. No se desactivan categorías enteras: solo reglas
   puntuales con su motivo escrito en el ruleset o en un comentario junto
   al `@SuppressWarnings`.
+- Las librerías transitivas fijadas por CVE se declaran como
+  `constraints` con `because("CVE-...")` y versión en el catálogo, nunca
+  como dependencias directas usadas solo para fijar la versión. Las mismas
+  coordenadas van en `dependencyManagement`, porque el plugin de Spring
+  reescribe los constraints. La tarea `verifyCvePinnedVersions` corre en
+  `check` y falla si alguna resuelve otra versión.
 
 ## 12. Docker y Docker Compose
 

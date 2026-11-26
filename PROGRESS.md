@@ -3,7 +3,7 @@
 Estado del proyecto por fases, con el alcance ya implementado, su
 validación y lo que queda pendiente.
 
-Última actualización: 2026-11-25 · Rama `chore/fase-15-sugerencias` · Fases 0–15 implementadas
+Última actualización: 2026-11-25 · Rama `docs/cierre-plan-correcciones` · Fases 0–15 implementadas
 
 ## Estado general
 
@@ -404,8 +404,26 @@ la búsqueda y su cantidad de equivalentes.
 
 ## Validaciones actuales
 
+### Cierre del plan de correcciones (Fases 10 a 15)
+
+- `./gradlew clean build -PintegrationTest=true`, ejecutado al cerrar la
+  Fase 15: 153 unit tests y 24 integration tests, sin fallos ni tests
+  omitidos. `check` incluye `pmdMain` y `verifyCvePinnedVersions`.
+- Cobertura JaCoCo con exclusiones reducidas a la configuración pura:
+  `LINE` 95,6 % (433/453) y `BRANCH` 93,6 % (103/110). Umbral bloqueante:
+  80 % en líneas y branches.
+- PMD: 0 hallazgos sobre el código de producción (límite: 10).
+- Docker Compose, validado en la Fase 10 sobre un volumen nuevo: Flyway
+  aplica `V1` y `V2`, el POST con `hotelId` `1234aBc` responde 202 y el GET
+  devuelve `1234aBc` sin cambios. Las Fases 11 a 15 no tocaron Compose, el
+  Dockerfile ni las migraciones, y el stack no se volvió a levantar después
+  de ellas.
+
+### Validación del stack en la Fase 9
+
 Comandos ejecutados después de implementar la Fase 9, tanto en el working
-tree como en una copia limpia del estado entregable:
+tree como en una copia limpia del estado entregable. Los números de esta
+sección corresponden a ese momento:
 
 ```bash
 ./gradlew clean build
@@ -435,7 +453,8 @@ docker compose ps
   `searchCount = 1` en el GET.
 - El stack de validación se detuvo con `docker compose down -v`; sus volúmenes
   temporales fueron eliminados.
-- Flyway crea `hotel_search`, registra la versión 1 como aplicada y valida el
+- Flyway crea `hotel_search`, registra la versión 1 como aplicada (la única
+  migración en ese momento; `V2` se agregó en la Fase 10) y valida el
   esquema sin nuevas migraciones después de reiniciar el stack.
 - El flujo end-to-end devuelve 202 en dos POST con búsquedas equivalentes,
   genera `searchId` distintos y responde `searchCount = 1` en los GET.
@@ -495,3 +514,6 @@ docker compose ps
   socket de Docker.
 - La Fase 9 y la documentación de soporte quedan completadas y registradas
   en Git.
+- El plan de correcciones de `CORRECTIONS-PLAN.md` (Fases 10 a 15) está
+  cerrado. No hay fases pendientes; cualquier cambio nuevo de diseño se
+  contrasta primero con `REQUIREMENTS.md` y `TECHNICAL-DECISIONS.md`.

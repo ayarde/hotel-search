@@ -364,8 +364,8 @@ Para cambiar los puertos publicados, modificá `APP_PORT`,
 ```
 
 Compila el proyecto, ejecuta los tests unitarios, verifica el umbral de
-JaCoCo, corre PMD y genera el JAR ejecutable. Los integration tests no se ejecutan en
-este comando.
+JaCoCo, corre PMD, verifica las versiones fijadas por CVE y genera el JAR
+ejecutable. Los integration tests no se ejecutan en este comando.
 
 Para regenerar todos los artefactos desde cero:
 
@@ -430,6 +430,26 @@ excluidas o ajustadas tienen el motivo escrito junto a la exclusión, y cada
 justifica.
 
 Reporte: `build/reports/pmd/main.html`.
+
+### Versiones fijadas por CVE
+
+Algunas librerías transitivas se fijan en una versión segura: Jackson
+3.2.4 (`jackson-databind` y `jackson-core`), `jackson-annotations` 2.22,
+`commons-codec` 1.23.0 y `json-smart` 2.6.1. Las versiones están en
+`gradle/libs.versions.toml` y se declaran en `build.gradle.kts` como
+`constraints` con `because("CVE-...")`, no como dependencias directas: un
+constraint fija la versión cuando otra dependencia trae la librería, pero no
+la agrega al classpath. Como el plugin `io.spring.dependency-management`
+reescribe esos constraints con las versiones de Spring Boot, las mismas
+coordenadas también se declaran en su bloque `dependencyManagement`.
+
+La tarea `verifyCvePinnedVersions` corre en `check` y hace fallar el build si
+alguna de esas librerías resuelve otra versión en `runtimeClasspath`,
+`testRuntimeClasspath` o `intTestRuntimeClasspath`:
+
+```bash
+./gradlew verifyCvePinnedVersions
+```
 
 ## Operación con Docker Compose
 

@@ -12,6 +12,10 @@ de la fase actual.
 
 Aplicar `TESTING_RULES.md` en todas las fases que generen tests.
 
+Este plan cubre las Fases 0 a 9. Las correcciones posteriores a la revisión
+externa (Fases 10 a 15) están en `CORRECTIONS-PLAN.md` y prevalecen sobre
+este documento donde lo modifican, por ejemplo en el contrato de `hotelId`.
+
 ------------------------------------------------------------------------
 
 ## Fase 0 — Bootstrap del proyecto
@@ -47,7 +51,9 @@ Aplicar `TESTING_RULES.md` en todas las fases que generen tests.
 
 - Modelos inmutables de búsqueda y evento.
 - Value objects para identificadores y reglas.
-- Validaciones de dominio: UUID, fechas, edades y orden de edades.
+- Validaciones de dominio: `searchId` como UUID, `hotelId` como texto de 1
+  a 64 caracteres sin espacios (desde la Fase 10), fechas, edades y orden de
+  edades.
 - Casos de uso `SubmitHotelSearch`, `CountHotelSearch` y
   `PersistHotelSearch`.
 - Puertos `HotelSearchPublisher` y `HotelSearchRepository`.
