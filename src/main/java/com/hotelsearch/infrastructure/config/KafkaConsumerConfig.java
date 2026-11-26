@@ -106,7 +106,7 @@ public class KafkaConsumerConfig {
     ) {
         var recoverer = new DeadLetterPublishingRecoverer(
             kafkaTemplate,
-            (record, exception) -> new TopicPartition(dltTopic, record.partition()));
+            (consumerRecord, _) -> new TopicPartition(dltTopic, consumerRecord.partition()));
         recoverer.setFailIfSendResultIsError(true);
         // Ambos topics tienen una sola partición; la topología ya está
         // garantizada por la configuración de topics de la aplicación.

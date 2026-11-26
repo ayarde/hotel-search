@@ -40,29 +40,29 @@ public class HotelSearchKafkaListener {
      * después de ese retorno. El scope de correlación se cierra incluso
      * cuando la validación o la persistencia propagan una excepción.</p>
      *
-     * @param record registro Kafka con el evento y sus headers de correlación
+     * @param consumerRecord registro Kafka con el evento y sus headers de correlación
      */
     @KafkaListener(
         topics = "${app.kafka.topics.hotel-availability-searches}",
         groupId = "${spring.kafka.consumer.group-id}",
         containerFactory = "kafkaListenerContainerFactory"
     )
-    public void consume(ConsumerRecord<String, HotelSearchEvent> record) {
-        HotelSearchEvent event = record.value();
-        String searchId = resolveSearchId(record, event);
+    public void consume(ConsumerRecord<String, HotelSearchEvent> consumerRecord) {
+        HotelSearchEvent event = consumerRecord.value();
+        String searchId = resolveSearchId(consumerRecord, event);
 
-        try (MdcScope ignored = MdcScope.search(
+        try (MdcScope _ = MdcScope.search(
             CorrelationContext.KAFKA_CONSUMER_COMPONENT, searchId)) {
             persistHotelSearch.execute(mapper.toHotelSearch(event));
         }
     }
 
     private String resolveSearchId(
-        ConsumerRecord<String, HotelSearchEvent> record,
+        ConsumerRecord<String, HotelSearchEvent> consumerRecord,
         HotelSearchEvent event
     ) {
         String eventSearchId = event.searchId().toString();
-        var header = record.headers().lastHeader(CorrelationContext.SEARCH_ID);
+        var header = consumerRecord.headers().lastHeader(CorrelationContext.SEARCH_ID);
         if (header == null || header.value() == null) {
             return eventSearchId;
         }
@@ -71,7 +71,7 @@ public class HotelSearchKafkaListener {
         try {
             String validSearchId = SearchId.of(candidate).toString();
             return validSearchId.equals(eventSearchId) ? validSearchId : eventSearchId;
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException _) {
             // El evento conserva su searchId canónico. Un header inválido no
             // se utiliza para la correlación ni se propaga al MDC.
             return eventSearchId;

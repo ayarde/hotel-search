@@ -36,6 +36,8 @@ import tools.jackson.databind.exc.UnrecognizedPropertyException;
 @SuppressWarnings("PMD.TooManyMethods")
 public class RestExceptionHandler {
 
+    private static final String INVALID_REQUEST_TYPE = "urn:hotel-search:problem:invalid-request";
+
     private static final String INVALID_REQUEST_TITLE = "Solicitud inválida";
 
     private static final String GLOBAL_ERRORS_KEY = "_global";
@@ -67,7 +69,7 @@ public class RestExceptionHandler {
 
         ProblemDetail problem = problem(
             HttpStatus.BAD_REQUEST,
-            "urn:hotel-search:problem:invalid-request",
+            INVALID_REQUEST_TYPE,
             INVALID_REQUEST_TITLE,
             "El request contiene valores que no cumplen el contrato.",
             request);
@@ -141,7 +143,7 @@ public class RestExceptionHandler {
 
         return response(HttpStatus.BAD_REQUEST, problem(
             HttpStatus.BAD_REQUEST,
-            "urn:hotel-search:problem:invalid-request",
+            INVALID_REQUEST_TYPE,
             INVALID_REQUEST_TITLE,
             detail,
             request));
@@ -181,7 +183,7 @@ public class RestExceptionHandler {
     ) {
         return response(HttpStatus.BAD_REQUEST, problem(
             HttpStatus.BAD_REQUEST,
-            "urn:hotel-search:problem:invalid-request",
+            INVALID_REQUEST_TYPE,
             INVALID_REQUEST_TITLE,
             exception.getMessage(),
             request));

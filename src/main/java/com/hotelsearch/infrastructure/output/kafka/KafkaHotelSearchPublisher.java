@@ -48,15 +48,15 @@ public class KafkaHotelSearchPublisher implements HotelSearchPublisher {
     public void publish(HotelSearchEvent event) {
         String searchId = event.searchId().toString();
 
-        try (MdcScope ignored = MdcScope.search(
+        try (MdcScope _ = MdcScope.search(
             CorrelationContext.KAFKA_PRODUCER_COMPONENT, searchId)) {
-            var record = new ProducerRecord<String, Object>(topic, searchId, event);
-            record.headers().add(
+            var producerRecord = new ProducerRecord<String, Object>(topic, searchId, event);
+            producerRecord.headers().add(
                 CorrelationContext.SEARCH_ID,
                 searchId.getBytes(StandardCharsets.UTF_8));
 
             try {
-                SendResult<String, Object> result = kafkaTemplate.send(record).get();
+                SendResult<String, Object> result = kafkaTemplate.send(producerRecord).get();
                 logPublished(result, searchId);
             } catch (InterruptedException e) {
                 restoreInterruptFlag();
@@ -79,9 +79,7 @@ public class KafkaHotelSearchPublisher implements HotelSearchPublisher {
         }
     }
 
-    // Restablecer el flag es la forma correcta de no perder la interrupción;
-    // no crea ni gestiona hilos.
-    @SuppressWarnings("PMD.DoNotUseThreads")
+    // Restablecer el flag es la forma correcta de no perder la interrupción.
     private static void restoreInterruptFlag() {
         Thread.currentThread().interrupt();
     }

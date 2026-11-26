@@ -10,7 +10,26 @@
         y algunas se ajustan por propiedades en lugar de desactivarse.
     </description>
 
-    <rule ref="category/java/bestpractices.xml"/>
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Marca cualquier interfaz con un solo método abstracto, como los
+             puertos (HotelSearchRepository.save). Que hoy tengan un método no
+             las convierte en interfaces funcionales pensadas para lambdas. -->
+        <exclude name="ImplicitFunctionalInterface"/>
+        <!-- GuardLogStatement se configura abajo. -->
+        <exclude name="GuardLogStatement"/>
+    </rule>
+
+    <!-- Con SLF4J y parámetros ({}), el mensaje solo se formatea si el nivel
+         está activo, pero los argumentos se evalúan siempre. En info, warn y
+         error el guard no ahorra nada, porque esos niveles están activos en
+         producción. Se exige solo en debug y trace, que suelen estar
+         apagados y donde evaluar argumentos costosos sí es trabajo perdido. -->
+    <rule ref="category/java/bestpractices.xml/GuardLogStatement">
+        <properties>
+            <property name="logLevels" value="trace,debug"/>
+            <property name="guardsMethods" value="isTraceEnabled,isDebugEnabled"/>
+        </properties>
+    </rule>
 
     <rule ref="category/java/codestyle.xml">
         <!-- El proyecto no marca parámetros ni variables locales como final.
@@ -38,12 +57,29 @@
         <!-- La llamada implícita a super() es parte del lenguaje; escribirla no
              cambia nada. -->
         <exclude name="CallSuperInConstructor"/>
+        <!-- La visibilidad de paquete es intencional (beans y configuración que
+             no deben usarse fuera del paquete); exigir un comentario
+             /* default */ en cada uno no aporta información. -->
+        <exclude name="CommentDefaultAccessModifier"/>
+        <!-- ShortVariable se configura abajo. -->
+        <exclude name="ShortVariable"/>
+    </rule>
+
+    <!-- id es un nombre claro y habitual. Se siguen marcando los nombres de
+         una letra fuera de los bucles. -->
+    <rule ref="category/java/codestyle.xml/ShortVariable">
+        <properties>
+            <property name="minimum" value="2"/>
+        </properties>
     </rule>
 
     <rule ref="category/java/design.xml">
         <!-- Marca el uso normal de APIs de terceros (KafkaProperties,
              SendResult, HttpServletRequest) y no detecta acoplamiento real. -->
         <exclude name="LawOfDemeter"/>
+        <!-- Sin la propiedad "packages" configurada, PMD la descarta con un
+             aviso de regla mal configurada. -->
+        <exclude name="LoosePackageCoupling"/>
     </rule>
 
     <!-- CommentRequired y CommentSize se configuran abajo. -->
@@ -57,7 +93,7 @@
          siguen requiriendo comentario. -->
     <rule ref="category/java/documentation.xml/CommentRequired">
         <properties>
-            <property name="fieldCommentRequirement" value="Ignored"/>
+            <property name="fieldCommentRequirement" value="ignored"/>
         </properties>
     </rule>
 
@@ -72,7 +108,25 @@
     </rule>
 
     <rule ref="category/java/errorprone.xml">
+        <!-- EmptyCatchBlock y AvoidDuplicateLiterals se configuran abajo. -->
         <exclude name="EmptyCatchBlock"/>
+        <exclude name="AvoidDuplicateLiterals"/>
+        <!-- La aplicación no usa serialización Java: las búsquedas viajan como
+             JSON por Kafka y HTTP. Las excepciones propias heredan Serializable
+             de Throwable, pero nunca se serializan. -->
+        <exclude name="MissingSerialVersionUID"/>
+    </rule>
+
+    <!-- Un literal repetido tres veces ya justifica una constante: si el valor
+         cambia, se cambia en un solo lugar. El valor por defecto de PMD (4)
+         deja pasar los casos más comunes. Se ignoran los literales de
+         anotaciones (@Value, @KafkaListener), que suelen ser claves de
+         configuración. -->
+    <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
+        <properties>
+            <property name="maxDuplicateLiterals" value="3"/>
+            <property name="skipAnnotations" value="true"/>
+        </properties>
     </rule>
 
     <!-- Un catch vacío solo se acepta si un comentario explica por qué se
@@ -82,7 +136,108 @@
             <property name="allowCommentedBlocks" value="true"/>
         </properties>
     </rule>
-    <rule ref="category/java/multithreading.xml"/>
-    <rule ref="category/java/performance.xml"/>
+
+    <rule ref="category/java/multithreading.xml">
+        <!-- Regla de J2EE: prohíbe cualquier uso de hilos. En Spring Boot los
+             executors (incluidos los de hilos virtuales) son la forma correcta
+             de manejar concurrencia. -->
+        <exclude name="DoNotUseThreads"/>
+        <!-- Marca cualquier Map, incluidas las variables locales, que no se
+             comparten entre hilos. -->
+        <exclude name="UseConcurrentHashMap"/>
+        <!-- Su motivo era que synchronized fijaba los hilos virtuales a su
+             hilo portador. Desde Java 24 (JEP 491) eso ya no ocurre. -->
+        <exclude name="AvoidSynchronizedStatement"/>
+        <exclude name="AvoidSynchronizedAtMethodLevel"/>
+    </rule>
+
+    <rule ref="category/java/performance.xml">
+        <!-- Crear objetos dentro de un bucle es normal (mapear DTOs, armar un
+             StringBuilder por elemento). La JVM optimiza los objetos de vida
+             corta. -->
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+    </rule>
+
     <rule ref="category/java/security.xml"/>
+
+    <!-- ===================== reglas propias ===================== -->
+
+    <rule name="AvoidRestrictedIdentifiers"
+          language="java"
+          message="No usar la palabra clave contextual ''{0}'' como nombre de variable"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            record, var, yield, sealed y permits son palabras clave
+            contextuales del lenguaje (JLS 3.9). El compilador las acepta como
+            nombre de variable, pero confunden la lectura; con Kafka, preferir
+            consumerRecord, producerRecord o message.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//VariableId[@Name = ('record', 'var', 'yield', 'sealed', 'permits')]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="UseUnnamedVariable"
+          language="java"
+          message="Usar _ para una variable que no se usa, en lugar de ''{0}''"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            UnusedLocalVariable ignora a propósito las variables llamadas
+            ignored o unused, así que esos nombres esconden variables sin uso.
+            Desde Java 22, una variable que no se usa se declara con _ (en
+            try-with-resources, catch, lambdas y patrones), y el compilador
+            impide usarla por error.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//VariableId[@Name = ('ignore', 'ignored', 'unused')]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="AvoidFieldInjection"
+          language="java"
+          message="Usar inyección por constructor en lugar de @Autowired en campos"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            La inyección por constructor deja explícitas las dependencias,
+            permite campos final y facilita los tests sin contexto de Spring.
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//FieldDeclaration[ModifierList/Annotation[@SimpleName = 'Autowired']]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
+
+    <rule name="TransactionalOnPrivateMethod"
+          language="java"
+          message="@Transactional no tiene efecto en un método private"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            Spring aplica @Transactional mediante un proxy, que no intercepta
+            métodos private. La anotación compila, pero no abre ninguna
+            transacción. Anotar un método no privado del bean.
+        </description>
+        <priority>2</priority>
+        <properties>
+            <property name="xpath">
+                <value><![CDATA[
+//MethodDeclaration[@Visibility = 'private']
+    [ModifierList/Annotation[@SimpleName = 'Transactional']]
+                ]]></value>
+            </property>
+        </properties>
+    </rule>
 </ruleset>
